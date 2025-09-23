@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/card_list_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const SenkaiSengiApp());
@@ -18,7 +18,7 @@ class SenkaiSengiApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB33333)),
         useMaterial3: true,
       ),
-      home: const CardListScreen(),
+      home: const HomeScreen(),
     );
   }
 }

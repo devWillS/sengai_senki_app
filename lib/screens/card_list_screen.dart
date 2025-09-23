@@ -160,7 +160,6 @@ class _CardListScreenState extends State<CardListScreen> {
 
   List<Widget> _buildActiveFilterChips() {
     final chips = <Widget>[];
-    final theme = Theme.of(context);
 
     if (_filter.keyword.trim().isNotEmpty) {
       chips.add(
@@ -398,7 +397,7 @@ class _CardListScreenState extends State<CardListScreen> {
           }
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 20),
+            padding: const EdgeInsets.only(top: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -446,35 +445,40 @@ class _CardListScreenState extends State<CardListScreen> {
                                     ),
                                   )
                                 else
-                                  GridView.builder(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                      vertical: 5,
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 75.0,
                                     ),
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: _visibleCards.length,
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount:
-                                              _resolveCrossAxisCount(
-                                                innerConstraints.maxWidth,
-                                              ),
-                                          mainAxisSpacing: 5,
-                                          crossAxisSpacing: 5,
-                                          childAspectRatio: 670 / 950,
-                                        ),
-                                    itemBuilder: (context, index) {
-                                      final card = _visibleCards[index];
-                                      return Hero(
-                                        tag: 'card-${card.id}-$index',
-                                        child: GestureDetector(
-                                          onTap: () => _openCardDetail(index),
-                                          child: CardTile(card: card),
-                                        ),
-                                      );
-                                    },
+                                    child: GridView.builder(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 5,
+                                      ),
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: _visibleCards.length,
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount:
+                                                _resolveCrossAxisCount(
+                                                  innerConstraints.maxWidth,
+                                                ),
+                                            mainAxisSpacing: 5,
+                                            crossAxisSpacing: 5,
+                                            childAspectRatio: 670 / 950,
+                                          ),
+                                      itemBuilder: (context, index) {
+                                        final card = _visibleCards[index];
+                                        return Hero(
+                                          tag: 'card-${card.id}-$index',
+                                          child: GestureDetector(
+                                            onTap: () => _openCardDetail(index),
+                                            child: CardTile(card: card),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                               ],
                             ),

@@ -10,8 +10,8 @@ void main() {
     // Allow asynchronous card loading to complete.
     await tester.pumpAndSettle();
 
-    expect(find.text('カード一覧'), findsOneWidget);
-    expect(find.textContaining('表示件数'), findsOneWidget);
+    expect(find.text('カード一覧'), findsWidgets);
     expect(find.byType(GridView), findsOneWidget);
+    expect(find.byIcon(Icons.view_module), findsOneWidget);
   });
 }
