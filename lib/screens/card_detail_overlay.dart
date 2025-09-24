@@ -185,9 +185,12 @@ class _CardDetailPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Hero(
-            tag: heroTag,
-            child: CardTile(card: card),
+          AspectRatio(
+            aspectRatio: 670 / 950,
+            child: Hero(
+              tag: heroTag,
+              child: CardTile(card: card),
+            ),
           ),
           const SizedBox(height: 24),
           Text(
@@ -341,7 +344,7 @@ class _PageIndicator extends StatelessWidget {
       child: Text(
         '${currentIndex + 1} / $length',
         style: const TextStyle(
-          color: Colors.white,
+          color: Colors.black,
           fontWeight: FontWeight.bold,
         ),
       ),

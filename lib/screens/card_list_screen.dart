@@ -470,10 +470,10 @@ class _CardListScreenState extends State<CardListScreen> {
                                           ),
                                       itemBuilder: (context, index) {
                                         final card = _visibleCards[index];
-                                        return Hero(
-                                          tag: 'card-${card.id}-$index',
-                                          child: GestureDetector(
-                                            onTap: () => _openCardDetail(index),
+                                        return GestureDetector(
+                                          onTap: () => _openCardDetail(index),
+                                          child: Hero(
+                                            tag: 'card-${card.id}-$index',
                                             child: CardTile(card: card),
                                           ),
                                         );
