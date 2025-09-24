@@ -1,0 +1,46 @@
+[
+  {
+    "id": "deck_azure_warden",
+    "name": "蒼刃の守護者",
+    "description": "青属性を中心に壁役と制圧力を兼ね備えたバランス型デッキ。",
+    "updated_at": "2024-07-12",
+    "main_deck": [
+      { "card_id": "SB1_1", "count": 2 },
+      { "card_id": "SB1_2", "count": 2 },
+      { "card_id": "SB1_3", "count": 2 },
+      { "card_id": "SB1_4", "count": 2 },
+      { "card_id": "SB1_5", "count": 2 },
+      { "card_id": "SB1_6", "count": 2 },
+      { "card_id": "SB1_7", "count": 2 },
+      { "card_id": "SB1_8", "count": 2 },
+      { "card_id": "SB1_9", "count": 2 },
+      { "card_id": "SB1_10", "count": 2 }
+    ],
+    "magic_deck": [
+      { "card_id": "SB1_11", "count": 8 },
+      { "card_id": "SB1_12", "count": 2 }
+    ]
+  },
+  {
+    "id": "deck_crimson_rush",
+    "name": "紅蓮の猛攻",
+    "description": "赤属性の攻撃カードを詰め込んだスピード重視の構成。",
+    "updated_at": "2024-08-01",
+    "main_deck": [
+      { "card_id": "SR1_1", "count": 2 },
+      { "card_id": "SR1_2", "count": 2 },
+      { "card_id": "SR1_3", "count": 2 },
+      { "card_id": "SR1_4", "count": 2 },
+      { "card_id": "SR1_5", "count": 2 },
+      { "card_id": "SR1_6", "count": 2 },
+      { "card_id": "SR1_7", "count": 2 },
+      { "card_id": "SR1_8", "count": 2 },
+      { "card_id": "SR1_9", "count": 2 },
+      { "card_id": "SR1_10", "count": 2 }
+    ],
+    "magic_deck": [
+      { "card_id": "SR1_11", "count": 8 },
+      { "card_id": "SR1_12", "count": 2 }
+    ]
+  }
+]
