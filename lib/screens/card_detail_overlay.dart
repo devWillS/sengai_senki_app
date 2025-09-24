@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:senkai_sengi/screens/holo_card.dart';
 
 import '../models/card_data.dart';
 import '../widgets/card_tile.dart';
@@ -66,6 +67,35 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
     }
   }
 
+  void _showHoloCard(CardData card, int index) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false, // 背景を透明に
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return Scaffold(
+            backgroundColor: Colors.black54,
+            body: GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              child: Container(
+                padding: EdgeInsets.all(20),
+                child: Hero(
+                  tag: 'card-${card.id}-$index',
+                  child: HoloCard(card: card),
+                ),
+              ),
+            ),
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -106,6 +136,7 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
                               return _CardDetailPage(
                                 card: card,
                                 heroTag: 'card-${card.id}-$index',
+                                onLongPress: () => _showHoloCard(card, index),
                               );
                             },
                           ),
@@ -171,10 +202,15 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
 }
 
 class _CardDetailPage extends StatelessWidget {
-  const _CardDetailPage({required this.card, required this.heroTag});
+  const _CardDetailPage({
+    required this.card,
+    required this.heroTag,
+    this.onLongPress,
+  });
 
   final CardData card;
   final Object heroTag;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -187,9 +223,12 @@ class _CardDetailPage extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 670 / 950,
-            child: Hero(
-              tag: heroTag,
-              child: CardTile(card: card),
+            child: GestureDetector(
+              onLongPress: onLongPress,
+              child: Hero(
+                tag: heroTag,
+                child: CardTile(card: card),
+              ),
             ),
           ),
           const SizedBox(height: 24),
