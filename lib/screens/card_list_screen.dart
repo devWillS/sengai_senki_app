@@ -6,6 +6,7 @@ import '../models/card_sort_option.dart';
 import '../repositories/card_repository.dart';
 import '../widgets/card_tile.dart';
 import 'card_detail_overlay.dart';
+import 'holo_card.dart';
 
 class CardListScreen extends StatefulWidget {
   const CardListScreen({super.key});
@@ -153,6 +154,35 @@ class _CardListScreenState extends State<CardListScreen> {
             opacity: animation,
             child: CardDetailOverlay(initialIndex: index, cards: _visibleCards),
           );
+        },
+      ),
+    );
+  }
+
+  void _showHoloCard(CardData card, int index) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false, // 背景を透明に
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return Scaffold(
+            backgroundColor: Colors.black54,
+            body: GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              child: Container(
+                padding: EdgeInsets.all(20),
+                child: Hero(
+                  tag: 'card-${card.id}-$index',
+                  child: HoloCard(card: card),
+                ),
+              ),
+            ),
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
         },
       ),
     );
@@ -472,6 +502,8 @@ class _CardListScreenState extends State<CardListScreen> {
                                         final card = _visibleCards[index];
                                         return GestureDetector(
                                           onTap: () => _openCardDetail(index),
+                                          onLongPress: () =>
+                                              _showHoloCard(card, index),
                                           child: Hero(
                                             tag: 'card-${card.id}-$index',
                                             child: CardTile(card: card),

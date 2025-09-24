@@ -14,7 +14,6 @@ class CardTile extends StatelessWidget {
     return Center(
       child: LayoutBuilder(
         builder: (context, constrains) {
-          print("@@@@ $constrains");
           double long = max<double>(constrains.maxHeight, constrains.maxWidth);
           return ClipRRect(
             borderRadius: BorderRadius.all(Radius.circular(long / 950 * 23)),
