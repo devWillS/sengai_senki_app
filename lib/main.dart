@@ -13,7 +13,7 @@ class SenkaiSengiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Senkai Sengi Cards',
+      title: '千戯ポケット',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB33333)),
         useMaterial3: true,
