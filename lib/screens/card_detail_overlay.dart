@@ -36,12 +36,18 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
     curve: Curves.easeOut,
   );
 
+  late Animation<Offset> animation;
+
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    animation = Tween<Offset>(
+      begin: const Offset(0.0, 1.5),
+      end: Offset.zero,
+    ).animate(_animationController);
     _animationController.forward();
     _pageController.addListener(() {
       final page = _pageController.page?.round();
@@ -138,7 +144,17 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
                 ),
               ),
               const SizedBox(height: 5),
-              Expanded(child: _CardDetailPage(card: list[_currentIndex])),
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: ctrl,
+                  builder: (context, child) {
+                    return SlideTransition(
+                      position: animation,
+                      child: _CardDetailPage(card: list[_currentIndex]),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),

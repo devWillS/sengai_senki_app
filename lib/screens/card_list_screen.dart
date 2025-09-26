@@ -104,7 +104,7 @@ class _CardListScreenState extends State<CardListScreen> {
               child: Container(
                 padding: EdgeInsets.all(20),
                 child: Hero(
-                  tag: 'card-${card.id}-$index',
+                  tag: index,
                   child: HoloCard(card: card),
                 ),
               ),
