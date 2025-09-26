@@ -885,6 +885,7 @@ class _DeckWidgetLandState extends ConsumerState<DeckScreenshotScreen>
           decoration: BoxDecoration(
             border: Border.all(color: Colors.black38),
             borderRadius: BorderRadius.circular(4),
+            color: Colors.white70,
           ),
         );
       },

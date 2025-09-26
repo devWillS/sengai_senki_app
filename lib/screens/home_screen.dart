@@ -34,9 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return CupertinoTabScaffold(
       controller: _tabController,
       resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF3E3E3E),
       tabBar: CupertinoTabBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black,
         activeColor: theme.colorScheme.primary,
         inactiveColor: theme.colorScheme.onSurfaceVariant,
         items: const [

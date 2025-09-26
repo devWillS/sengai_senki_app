@@ -158,10 +158,22 @@ class DeckDetailViewModel {
     if (card.type != "魔力") {
       final currentCards = [...ref.read(mainDeckCardsProvider)];
       currentCards.add(card);
+      // コストの降順→IDの昇順でソート
+      currentCards.sort((a, b) {
+        final costCompare = (b.cost ?? 0).compareTo(a.cost ?? 0);
+        if (costCompare != 0) return costCompare;
+        return a.id.compareTo(b.id);
+      });
       ref.read(mainDeckCardsProvider.notifier).state = currentCards;
     } else {
       final currentCards = [...ref.read(magicDeckCardsProvider)];
       currentCards.add(card);
+      // コストの降順→IDの昇順でソート
+      currentCards.sort((a, b) {
+        final costCompare = (b.cost ?? 0).compareTo(a.cost ?? 0);
+        if (costCompare != 0) return costCompare;
+        return a.id.compareTo(b.id);
+      });
       ref.read(magicDeckCardsProvider.notifier).state = currentCards;
     }
   }

@@ -112,12 +112,12 @@ class FilterPanel extends StatelessWidget {
               children: [
                 Text(
                   '${visibleCards.length}',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
                 ),
                 Text(
                   '件',
                   textAlign: TextAlign.end,
-                  style: TextStyle(fontSize: 8),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
