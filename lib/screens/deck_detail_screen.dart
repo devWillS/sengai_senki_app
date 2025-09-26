@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:senkai_sengi/screens/card_detail_overlay.dart';
+import 'package:senkai_sengi/screens/deck_screenshot_screen.dart';
 import 'package:senkai_sengi/utils/master.dart';
 import 'package:senkai_sengi/widgets/card_tile.dart';
 import 'package:senkai_sengi/widgets/cost_curve_chart.dart';
@@ -12,9 +13,9 @@ import '../view_models/deck_detail_view_model.dart';
 import 'deck_edit_screen.dart';
 
 class DeckDetailScreen extends ConsumerStatefulWidget {
-  const DeckDetailScreen({super.key, required this.deck});
+  const DeckDetailScreen({super.key, this.deck});
 
-  final Deck deck;
+  final Deck? deck;
 
   @override
   ConsumerState<DeckDetailScreen> createState() => _DeckDetailScreenState();
@@ -75,27 +76,6 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
               'デッキ詳細',
               style: TextStyle(color: Colors.white, fontSize: 20),
             ),
-            trailing: _isSaving
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  )
-                : TextButton(
-                    onPressed: _saveDeck,
-                    child: const Text(
-                      '保存',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
           ),
           body: ListView(
             padding: const EdgeInsets.all(16),
@@ -209,16 +189,26 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                   ],
                 ),
               ),
-              viewModel.deck != null
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  _saveDeck();
+                },
+                child: const SizedBox(
+                  width: double.infinity,
+                  child: Center(child: Text('保存')),
+                ),
+              ),
+              viewModel.isSavedInDatabase
                   ? Column(
                       children: [
-                        SizedBox(height: 20),
+                        SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             ElevatedButton(
-                              onPressed: () {
-                                showDialog(
+                              onPressed: () async {
+                                final shouldDelete = await showDialog<bool>(
                                   context: context,
                                   builder: (BuildContext context) {
                                     return CupertinoAlertDialog(
@@ -231,25 +221,132 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                                         ),
                                         CupertinoDialogAction(
                                           isDestructiveAction: true,
-                                          // onPressed: () => onPressedDelete(context),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
                                           child: const Text("はい"),
                                         ),
                                       ],
                                     );
                                   },
                                 );
+
+                                if (shouldDelete == true) {
+                                  final success = await viewModel.deleteDeck();
+                                  if (!mounted) return;
+
+                                  if (success) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return CupertinoAlertDialog(
+                                          title: const Text("削除しました"),
+                                          actions: <Widget>[
+                                            CupertinoDialogAction(
+                                              child: const Text("OK"),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                                Navigator.of(
+                                                  context,
+                                                ).maybePop('deleted');
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('デッキの削除に失敗しました'),
+                                      ),
+                                    );
+                                  }
+                                }
                               },
                               child: const Icon(CupertinoIcons.delete),
                             ),
                             ElevatedButton(
                               onPressed: () {
-                                // onPressedCamera();
+                                if (viewModel.deck == null) {
+                                  return;
+                                }
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return Scaffold(
+                                      backgroundColor: Colors.black45,
+                                      body: DeckScreenshotScreen(
+                                        deck: viewModel.deck,
+                                      ),
+                                    );
+                                  },
+                                );
                               },
                               child: const Icon(CupertinoIcons.camera),
                             ),
                             ElevatedButton(
-                              // onPressed: () => onPressedCopy(context),
-                              onPressed: () {},
+                              onPressed: () async {
+                                final shouldCopy = await showDialog<bool>(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return CupertinoAlertDialog(
+                                      title: const Text("デッキをコピーしますか？"),
+                                      content: Text(
+                                        "「${viewModel.nameController.text}のコピー」として新しいデッキが作成されます",
+                                      ),
+                                      actions: <Widget>[
+                                        CupertinoDialogAction(
+                                          child: const Text("キャンセル"),
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
+                                        ),
+                                        CupertinoDialogAction(
+                                          isDefaultAction: true,
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          child: const Text("コピー"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+
+                                if (shouldCopy == true) {
+                                  final copiedDeck = await viewModel.copyDeck();
+                                  if (!mounted) return;
+
+                                  if (copiedDeck != null) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return CupertinoAlertDialog(
+                                          title: const Text("コピーしました"),
+                                          content: Text(
+                                            "「${copiedDeck.name}」として保存しました",
+                                          ),
+                                          actions: <Widget>[
+                                            CupertinoDialogAction(
+                                              child: const Text("OK"),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                                Navigator.of(
+                                                  context,
+                                                ).maybePop('copied');
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('デッキのコピーに失敗しました'),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                               child: const Icon(Icons.content_copy_outlined),
                             ),
                             ElevatedButton(
@@ -279,7 +376,20 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.of(context).pop(viewModel.deck);
+      setState(() => _isSaving = false);
+
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('保存しました'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     } else {
       ScaffoldMessenger.of(
         context,
@@ -336,16 +446,6 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
     );
   }
 
-  List<DeckCardEntry> _buildDeckEntries(List<CardData> cards) {
-    final counts = <String, int>{};
-    for (final card in cards) {
-      counts.update(card.id, (value) => value + 1, ifAbsent: () => 1);
-    }
-    return counts.entries
-        .map((e) => DeckCardEntry(cardId: e.key, count: e.value))
-        .toList();
-  }
-
   Future<Deck> _buildCurrentDeck() async {
     // プロバイダから現在の状態を取得
     final mainDeckCards = ref.read(mainDeckCardsProvider);
@@ -364,7 +464,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
 
     // 現在のデッキ情報を使って新しいDeckオブジェクトを作成
     return Deck(
-      id: widget.deck.id,
+      id: widget.deck?.id ?? "",
       name: viewModel.nameController.text,
       description: viewModel.descriptionController.text,
       mainDeck: mainCounts.entries

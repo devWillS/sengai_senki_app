@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../models/deck.dart';
-import '../repositories/deck_repository.dart';
 import '../repositories/hive_deck_repository.dart';
 
 final deckListProvider =
@@ -37,7 +36,6 @@ class DeckListViewModel extends StateNotifier<AsyncValue<List<Deck>>> {
 
   final Ref ref;
   final _hiveRepository = HiveDeckRepository.instance;
-  final _presetRepository = DeckRepository.instance;
 
   Future<void> loadDecks() async {
     try {
@@ -46,11 +44,8 @@ class DeckListViewModel extends StateNotifier<AsyncValue<List<Deck>>> {
       // Hiveから保存されたデッキを読み込み
       final userDecks = await _hiveRepository.getAllDecks();
 
-      // プリセットデッキを読み込み
-      final presetDecks = await _presetRepository.loadDecks();
-
       // 両方のデッキリストを結合
-      final allDecks = [...userDecks, ...presetDecks];
+      final allDecks = [...userDecks];
 
       state = AsyncValue.data(allDecks);
     } catch (e, stack) {

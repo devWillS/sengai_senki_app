@@ -16,16 +16,54 @@ final mainDeckCardsProvider = StateProvider<List<CardData>>((ref) => []);
 final magicDeckCardsProvider = StateProvider<List<CardData>>((ref) => []);
 
 class DeckDetailViewModel {
-  DeckDetailViewModel(this.ref, Deck? initialDeck) : _initialDeck = initialDeck {
-    nameController = TextEditingController(text: initialDeck?.name ?? '新しいデッキ');
+  DeckDetailViewModel(this.ref, Deck? initialDeck)
+    : _initialDeck = initialDeck {
+    nameController = TextEditingController(text: initialDeck?.name);
     descriptionController = TextEditingController(
       text: initialDeck?.description ?? '',
     );
   }
 
-  final Deck? _initialDeck;
+  Deck? _initialDeck;
   Deck? _currentDeck;
-  Deck? get deck => _currentDeck ?? _initialDeck;
+
+  Deck? get deck {
+    // 保存済みのデッキがある場合はそれを返す
+    if (_currentDeck != null) return _currentDeck;
+    if (_initialDeck != null) return _initialDeck;
+
+    // 新規作成の場合は現在の編集状態からDeckを生成
+    final mainCards = ref.read(mainDeckCardsProvider);
+    final magicCards = ref.read(magicDeckCardsProvider);
+
+    if (mainCards.isEmpty && magicCards.isEmpty) return null;
+
+    final mainCounts = <String, int>{};
+    for (final card in mainCards) {
+      mainCounts.update(card.id, (value) => value + 1, ifAbsent: () => 1);
+    }
+
+    final magicCounts = <String, int>{};
+    for (final card in magicCards) {
+      magicCounts.update(card.id, (value) => value + 1, ifAbsent: () => 1);
+    }
+
+    return Deck(
+      id: '',
+      name: nameController.text.trim().isEmpty
+          ? '新しいデッキ'
+          : nameController.text.trim(),
+      description: descriptionController.text.trim(),
+      mainDeck: mainCounts.entries
+          .map((e) => DeckCardEntry(cardId: e.key, count: e.value))
+          .toList(),
+      magicDeck: magicCounts.entries
+          .map((e) => DeckCardEntry(cardId: e.key, count: e.value))
+          .toList(),
+      updatedAt: DateTime.now(),
+    );
+  }
+
   final WidgetRef ref;
   late final TextEditingController nameController;
   late final TextEditingController descriptionController;
@@ -38,7 +76,16 @@ class DeckDetailViewModel {
   DeckSortType sortType = DeckSortType.costDesc;
   bool groupByColor = false;
 
-  void initFromDeck(Deck deck) {
+  bool get isSavedInDatabase =>
+      _initialDeck != null && _initialDeck!.id.startsWith('user_');
+
+  void initFromDeck(Deck? deck) {
+    if (deck == null) {
+      // 新規作成の場合は状態をクリア
+      ref.read(mainDeckCardsProvider.notifier).state = [];
+      ref.read(magicDeckCardsProvider.notifier).state = [];
+      return;
+    }
     final mainCards = <CardData>[];
     final magicCards = <CardData>[];
 
@@ -186,9 +233,6 @@ class DeckDetailViewModel {
   Future<bool> saveDeck() async {
     try {
       final name = nameController.text.trim();
-      if (name.isEmpty) {
-        throw Exception('デッキ名を入力してください');
-      }
 
       final mainCounts = <String, int>{};
       for (final card in ref.read(mainDeckCardsProvider)) {
@@ -201,7 +245,9 @@ class DeckDetailViewModel {
       }
 
       final newDeck = Deck(
-        id: _initialDeck?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:
+            _initialDeck?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         name: name,
         description: descriptionController.text.trim(),
         mainDeck: mainCounts.entries
@@ -217,18 +263,15 @@ class DeckDetailViewModel {
         final key = int.parse(_initialDeck!.id.replaceFirst('user_', ''));
         final model = _repository.convertFromDeck(newDeck);
         await _repository.updateDeck(key, model);
+        _currentDeck = newDeck;
       } else {
         final model = _repository.convertFromDeck(newDeck);
         final savedKey = await _repository.addDeck(model);
         // Update the deck with the new ID from database
-        _currentDeck = newDeck.copyWith(
-          id: 'user_$savedKey',
-        );
-      }
-
-      // Update current deck for existing decks too
-      if (_currentDeck == null) {
-        _currentDeck = newDeck;
+        final savedDeck = newDeck.copyWith(id: 'user_$savedKey');
+        _currentDeck = savedDeck;
+        // Update _initialDeck so that isSavedInDatabase returns true
+        _initialDeck = savedDeck;
       }
 
       return true;
@@ -288,6 +331,56 @@ class DeckDetailViewModel {
     }
 
     return false;
+  }
+
+  Future<bool> deleteDeck() async {
+    try {
+      if (_initialDeck != null && _initialDeck!.id.startsWith('user_')) {
+        final key = int.parse(_initialDeck!.id.replaceFirst('user_', ''));
+        await _repository.deleteDeck(key);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('デッキ削除エラー: $e');
+      return false;
+    }
+  }
+
+  Future<Deck?> copyDeck() async {
+    try {
+      final mainCounts = <String, int>{};
+      for (final card in ref.read(mainDeckCardsProvider)) {
+        mainCounts.update(card.id, (value) => value + 1, ifAbsent: () => 1);
+      }
+
+      final magicCounts = <String, int>{};
+      for (final card in ref.read(magicDeckCardsProvider)) {
+        magicCounts.update(card.id, (value) => value + 1, ifAbsent: () => 1);
+      }
+
+      final copiedDeck = Deck(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: nameController.text.trim(),
+        description: descriptionController.text.trim(),
+        mainDeck: mainCounts.entries
+            .map((e) => DeckCardEntry(cardId: e.key, count: e.value))
+            .toList(),
+        magicDeck: magicCounts.entries
+            .map((e) => DeckCardEntry(cardId: e.key, count: e.value))
+            .toList(),
+        updatedAt: DateTime.now(),
+      );
+
+      final model = _repository.convertFromDeck(copiedDeck);
+      final savedKey = await _repository.addDeck(model);
+
+      // Return the deck with the database ID
+      return copiedDeck.copyWith(id: 'user_$savedKey');
+    } catch (e) {
+      print('デッキコピーエラー: $e');
+      return null;
+    }
   }
 
   void dispose() {

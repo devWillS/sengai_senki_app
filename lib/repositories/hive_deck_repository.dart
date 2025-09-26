@@ -1,13 +1,38 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/deck.dart';
 import '../models/deck_model.dart';
 import '../models/deck_sort_type.dart';
 import '../models/deck_type.dart';
 import 'base_repository.dart';
+import 'deck_repository.dart';
 
 class HiveDeckRepository extends BaseRepository<DeckModel> {
   HiveDeckRepository() : super('deck');
 
   static final HiveDeckRepository instance = HiveDeckRepository();
+  
+  static const String _firstLaunchKey = 'first_launch_completed';
+  
+  /// 初回起動時にプリセットデッキをインポート
+  Future<void> importPresetDecksOnFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstLaunchCompleted = prefs.getBool(_firstLaunchKey) ?? false;
+    
+    if (!isFirstLaunchCompleted) {
+      // プリセットデッキを読み込み
+      final presetDecks = await DeckRepository.instance.loadDecks();
+      
+      // 各プリセットデッキをHiveDBに保存
+      for (final deck in presetDecks) {
+        final model = convertFromDeck(deck);
+        await addDeck(model);
+      }
+      
+      // 初回起動完了フラグを設定
+      await prefs.setBool(_firstLaunchKey, true);
+    }
+  }
 
   Future<List<DeckModel>> getList() async {
     final box = await super.box();

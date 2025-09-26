@@ -71,6 +71,7 @@ class _DeckListScreenState extends ConsumerState<DeckListScreen> {
         await ref.read(deckListProvider.notifier).addDeck(updated);
       }
     }
+    await _handleRefresh();
   }
 
   @override
@@ -91,20 +92,10 @@ class _DeckListScreenState extends ConsumerState<DeckListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final newDeck = Deck(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            name: '',
-            description: '',
-            mainDeck: const [],
-            magicDeck: const [],
-            updatedAt: DateTime.now(),
+          await Navigator.of(context).push<Deck>(
+            MaterialPageRoute(builder: (_) => DeckDetailScreen(deck: null)),
           );
-          final updated = await Navigator.of(context).push<Deck>(
-            MaterialPageRoute(builder: (_) => DeckDetailScreen(deck: newDeck)),
-          );
-          if (updated != null) {
-            await ref.read(deckListProvider.notifier).addDeck(updated);
-          }
+          await _handleRefresh();
         },
         child: const Icon(Icons.add),
       ),

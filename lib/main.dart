@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:senkai_sengi/repositories/card_repository.dart';
+import 'package:senkai_sengi/repositories/hive_deck_repository.dart';
 import 'package:senkai_sengi/utils/master.dart';
 
 import 'models/deck_model.dart';
@@ -25,6 +26,9 @@ void main() async {
   Master().rarityList = ["N", "R", "SR", "LR"];
   Master().costList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   Master().abilityList = [];
+  
+  // 初回起動時にプリセットデッキをインポート
+  await HiveDeckRepository.instance.importPresetDecksOnFirstLaunch();
 
   runApp(const ProviderScope(child: SenkaiSengiApp()));
 }
