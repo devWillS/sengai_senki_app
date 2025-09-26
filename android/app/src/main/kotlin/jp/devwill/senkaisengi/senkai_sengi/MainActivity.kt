@@ -1,4 +1,4 @@
-package jp.devwill.senkaisengi.senkai_sengi
+package jp.devwill.sengiPocket
 
 import io.flutter.embedding.android.FlutterActivity
 

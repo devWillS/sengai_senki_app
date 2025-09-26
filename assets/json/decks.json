@@ -1,29 +1,29 @@
 [
   {
-    "id": "deck_ancient_beast_deck",
-    "name": "太古の猛獣デッキ",
-    "description": "青属性を中心に壁役と制圧力を兼ね備えたバランス型デッキ。",
+    "id": "deck_crimson_rush",
+    "name": "伝承の幻獣",
+    "description": "赤属性の攻撃カードを詰め込んだスピード重視の構成。",
     "updated_at": "2025-09-19",
     "main_deck": [
-      { "card_id": "SG1_1", "count": 2 },
-      { "card_id": "SG1_2", "count": 2 },
-      { "card_id": "SG1_3", "count": 2 },
-      { "card_id": "SG1_4", "count": 2 },
-      { "card_id": "SG1_5", "count": 2 },
-      { "card_id": "SG1_6", "count": 2 },
-      { "card_id": "SG1_7", "count": 2 },
-      { "card_id": "SG1_8", "count": 2 },
-      { "card_id": "SG1_9", "count": 2 },
-      { "card_id": "SG1_10", "count": 2 }
+      { "card_id": "SR1_1", "count": 2 },
+      { "card_id": "SR1_2", "count": 2 },
+      { "card_id": "SR1_3", "count": 2 },
+      { "card_id": "SR1_4", "count": 2 },
+      { "card_id": "SR1_5", "count": 2 },
+      { "card_id": "SR1_6", "count": 2 },
+      { "card_id": "SR1_7", "count": 2 },
+      { "card_id": "SR1_8", "count": 2 },
+      { "card_id": "SR1_9", "count": 2 },
+      { "card_id": "SR1_10", "count": 2 }
     ],
     "magic_deck": [
-      { "card_id": "SG1_11", "count": 8 },
-      { "card_id": "SG1_12", "count": 2 }
+      { "card_id": "SR1_11", "count": 8 },
+      { "card_id": "SR1_12", "count": 2 }
     ]
   },
   {
     "id": "deck_azure_warden",
-    "name": "信仰の鬼神デッキ",
+    "name": "信仰の鬼神",
     "description": "青属性を中心に壁役と制圧力を兼ね備えたバランス型デッキ。",
     "updated_at": "2025-09-19",
     "main_deck": [
@@ -44,25 +44,25 @@
     ]
   },
   {
-    "id": "deck_crimson_rush",
-    "name": "伝承の幻獣デッキ",
-    "description": "赤属性の攻撃カードを詰め込んだスピード重視の構成。",
+    "id": "deck_ancient_beast_deck",
+    "name": "太古の猛獣",
+    "description": "青属性を中心に壁役と制圧力を兼ね備えたバランス型デッキ。",
     "updated_at": "2025-09-19",
     "main_deck": [
-      { "card_id": "SR1_1", "count": 2 },
-      { "card_id": "SR1_2", "count": 2 },
-      { "card_id": "SR1_3", "count": 2 },
-      { "card_id": "SR1_4", "count": 2 },
-      { "card_id": "SR1_5", "count": 2 },
-      { "card_id": "SR1_6", "count": 2 },
-      { "card_id": "SR1_7", "count": 2 },
-      { "card_id": "SR1_8", "count": 2 },
-      { "card_id": "SR1_9", "count": 2 },
-      { "card_id": "SR1_10", "count": 2 }
+      { "card_id": "SG1_1", "count": 2 },
+      { "card_id": "SG1_2", "count": 2 },
+      { "card_id": "SG1_3", "count": 2 },
+      { "card_id": "SG1_4", "count": 2 },
+      { "card_id": "SG1_5", "count": 2 },
+      { "card_id": "SG1_6", "count": 2 },
+      { "card_id": "SG1_7", "count": 2 },
+      { "card_id": "SG1_8", "count": 2 },
+      { "card_id": "SG1_9", "count": 2 },
+      { "card_id": "SG1_10", "count": 2 }
     ],
     "magic_deck": [
-      { "card_id": "SR1_11", "count": 8 },
-      { "card_id": "SR1_12", "count": 2 }
+      { "card_id": "SG1_11", "count": 8 },
+      { "card_id": "SG1_12", "count": 2 }
     ]
   }
 ]

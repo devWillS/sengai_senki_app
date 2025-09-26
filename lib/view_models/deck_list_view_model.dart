@@ -45,7 +45,7 @@ class DeckListViewModel extends StateNotifier<AsyncValue<List<Deck>>> {
       final userDecks = await _hiveRepository.getAllDecks();
 
       // 両方のデッキリストを結合
-      final allDecks = [...userDecks];
+      final allDecks = [...userDecks.reversed];
 
       state = AsyncValue.data(allDecks);
     } catch (e, stack) {
