@@ -43,10 +43,22 @@ dependencies:
   flutter_cache_manager: ^3.4.1
 
   shimmer: ^3.0.0
+  fl_chart: ^0.69.0
+  
+  # Database
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # State management
+  flutter_riverpod: ^3.0.0
+
+  bordered_text: ^2.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: ^2.4.9
+  hive_generator: ^2.0.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

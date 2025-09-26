@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 @immutable
 class CardData {
@@ -51,5 +51,19 @@ class CardData {
       hpCorrection: json['hp_correction'] as String?,
       imageUrl: json['image_url'] as String,
     );
+  }
+}
+
+extension CardExtension on CardData {
+  Color getColor() {
+    switch (color) {
+      case "赤":
+        return Colors.red;
+      case "青":
+        return Colors.blue;
+      case "緑":
+      default:
+        return Colors.green;
+    }
   }
 }

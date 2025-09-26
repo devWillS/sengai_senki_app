@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:senkai_sengi/screens/holo_card.dart';
+import 'package:senkai_sengi/widgets/card_info_row_base.dart';
+import 'package:senkai_sengi/widgets/card_name.dart';
 
 import '../models/card_data.dart';
 import '../widgets/card_tile.dart';
@@ -9,10 +11,12 @@ class CardDetailOverlay extends StatefulWidget {
     super.key,
     required this.initialIndex,
     required this.cards,
+    this.heroTag,
   });
 
   final int initialIndex;
   final List<CardData> cards;
+  final Object? heroTag;
 
   @override
   State<CardDetailOverlay> createState() => _CardDetailOverlayState();
@@ -56,246 +60,188 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
     super.dispose();
   }
 
-  void _navigate(int delta) {
-    final next = (_currentIndex + delta).clamp(0, widget.cards.length - 1);
-    if (next != _currentIndex) {
-      _pageController.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    }
-  }
-
-  void _showHoloCard(CardData card, int index) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false, // 背景を透明に
-        transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return Scaffold(
-            backgroundColor: Colors.black54,
-            body: GestureDetector(
-              onTap: () {
-                Navigator.of(context).pop();
-              },
-              child: Container(
-                padding: EdgeInsets.all(20),
-                child: Hero(
-                  tag: 'card-${card.id}-$index',
-                  child: HoloCard(card: card),
-                ),
-              ),
-            ),
-          );
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final list = widget.cards;
+    final heroTag = widget.heroTag;
+    final ctrl = _animationController;
 
     return Scaffold(
-      backgroundColor: Colors.black87,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).maybePop(),
-              child: Container(color: Colors.black54),
-            ),
-          ),
-          SafeArea(
-            child: Center(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 24,
-                    ),
-                    child: Material(
-                      color: theme.colorScheme.surface,
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(24),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        children: [
-                          PageView.builder(
-                            controller: _pageController,
-                            itemCount: widget.cards.length,
-                            itemBuilder: (context, index) {
-                              final card = widget.cards[index];
-                              return _CardDetailPage(
-                                card: card,
-                                heroTag: 'card-${card.id}-$index',
-                                onLongPress: () => _showHoloCard(card, index),
-                              );
-                            },
-                          ),
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: IconButton(
-                              icon: const Icon(Icons.close),
-                              color: theme.colorScheme.onSurface,
-                              onPressed: () => Navigator.of(context).maybePop(),
-                            ),
-                          ),
-                          if (widget.cards.length > 1)
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: IconButton(
-                                iconSize: 32,
-                                color: theme.colorScheme.onSurface,
-                                onPressed: () => _navigate(-1),
-                                icon: const Icon(Icons.chevron_left),
+      backgroundColor: Colors.black54,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          ctrl.reverse();
+          Navigator.of(context).pop();
+        },
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                flex: 2,
+                child: PageView.builder(
+                  itemCount: list.length,
+                  controller: _pageController,
+                  itemBuilder: (context, index) {
+                    final card = list[index];
+                    return Hero(
+                      tag: heroTag ?? index,
+                      child: GestureDetector(
+                        child: CardTile(card: card),
+                        onLongPress: () {
+                          ctrl.reverse();
+                          Navigator.of(context).push(
+                            PageRouteBuilder(
+                              opaque: false, // 背景を透明に
+                              transitionDuration: const Duration(
+                                milliseconds: 300,
                               ),
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) {
+                                    return GestureDetector(
+                                      onTap: () {
+                                        ctrl.forward();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.all(20),
+                                        child: Hero(
+                                          tag: heroTag ?? index,
+                                          child: HoloCard(
+                                            card: card,
+                                            // showRainbow: card.isKira ?? false,
+                                            // showGloss: card.isKira ?? false,
+                                            // showGlitter: card.isKira ?? false,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                              transitionsBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                    child,
+                                  ) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    );
+                                  },
                             ),
-                          if (widget.cards.length > 1)
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: IconButton(
-                                iconSize: 32,
-                                color: theme.colorScheme.onSurface,
-                                onPressed: () => _navigate(1),
-                                icon: const Icon(Icons.chevron_right),
-                              ),
-                            ),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
-            ),
+              const SizedBox(height: 5),
+              Expanded(child: _CardDetailPage(card: list[_currentIndex])),
+            ],
           ),
-          Positioned(
-            bottom: 32,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              top: false,
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
-                  child: _PageIndicator(
-                    key: ValueKey(_currentIndex),
-                    currentIndex: _currentIndex,
-                    length: widget.cards.length,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _CardDetailPage extends StatelessWidget {
-  const _CardDetailPage({
-    required this.card,
-    required this.heroTag,
-    this.onLongPress,
-  });
+  const _CardDetailPage({required this.card});
 
   final CardData card;
-  final Object heroTag;
-  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 64, 24, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AspectRatio(
-            aspectRatio: 670 / 950,
-            child: GestureDetector(
-              onLongPress: onLongPress,
-              child: Hero(
-                tag: heroTag,
-                child: CardTile(card: card),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            card.name,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _InfoChip(label: card.color, icon: Icons.palette_outlined),
-              _InfoChip(label: card.type, icon: Icons.aspect_ratio),
-              _InfoChip(label: card.rarity, icon: Icons.star_border),
-              if (card.cost != null)
-                _InfoChip(
-                  label: 'Cost ${card.cost}',
-                  icon: Icons.savings_outlined,
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _DetailStatList(card: card),
-          if (card.attribute != null && card.attribute!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text('属性', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(card.attribute!, style: theme.textTheme.bodyMedium),
-          ],
-          if (card.feature != null && card.feature!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text('効果', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(card.feature!, style: theme.textTheme.bodyMedium),
-          ],
-          if (card.illustrator != null && card.illustrator!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Illustration: ${card.illustrator}',
-              style: theme.textTheme.bodySmall,
-              textAlign: TextAlign.right,
-            ),
-          ],
-        ],
+    final attributes = card.attribute?.split(",") ?? [];
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(5),
       ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Chip(
-      avatar: Icon(icon, size: 18, color: theme.colorScheme.primary),
-      label: Text(label),
-      shape: const StadiumBorder(),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  card.id,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+                if (card.illustrator != null &&
+                    card.illustrator!.isNotEmpty) ...[
+                  Text(
+                    'Art: ${card.illustrator}',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ],
+            ),
+            CardName(name: card.name),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                card.cost != null
+                    ? Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: card.getColor(),
+                          border: Border.all(color: card.getColor()),
+                          borderRadius: BorderRadius.all(Radius.circular(30)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            "${card.cost}",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      )
+                    : SizedBox(width: 30, height: 30),
+                SizedBox(width: 3),
+                Text(card.type, style: TextStyle(fontSize: 15)),
+                SizedBox(width: 3),
+                Text(card.rarity, style: TextStyle(fontSize: 15)),
+              ],
+            ),
+            _DetailStatList(card: card),
+            if (card.attribute != null && card.attribute!.isNotEmpty) ...[
+              Wrap(
+                spacing: 2,
+                children: List.generate(attributes.length, (index) {
+                  final attribute = attributes[index];
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Text(
+                      attribute,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+            if (card.feature != null && card.feature!.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              CardInfoRowBase(value: card.feature!),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -307,86 +253,116 @@ class _DetailStatList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stats = <_StatEntry>[];
-    if (card.ap != null) {
-      stats.add(_StatEntry('AP', card.ap.toString()));
-    }
-    if (card.hp != null) {
-      stats.add(_StatEntry('HP', card.hp.toString()));
-    }
-    if (card.apCorrection != null && card.apCorrection!.isNotEmpty) {
-      stats.add(_StatEntry('AP修正', card.apCorrection!));
-    }
-    if (card.hpCorrection != null && card.hpCorrection!.isNotEmpty) {
-      stats.add(_StatEntry('HP修正', card.hpCorrection!));
-    }
-
-    if (stats.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      children: stats
-          .map(
-            (entry) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    entry.label,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  Text(
-                    entry.value,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-class _StatEntry {
-  const _StatEntry(this.label, this.value);
-
-  final String label;
-  final String value;
-}
-
-class _PageIndicator extends StatelessWidget {
-  const _PageIndicator({
-    super.key,
-    required this.currentIndex,
-    required this.length,
-  });
-
-  final int currentIndex;
-  final int length;
-
-  @override
-  Widget build(BuildContext context) {
-    if (length <= 1) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
-      ),
-      child: Text(
-        '${currentIndex + 1} / $length',
-        style: const TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        card.ap != null || card.apCorrection != null
+            ? Container(
+                padding: EdgeInsetsGeometry.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.redAccent),
+                ),
+                child: Row(
+                  children: [
+                    card.ap != null
+                        ? Column(
+                            children: [
+                              Text(
+                                "AP",
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                "${card.ap}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Container(),
+                    card.apCorrection != null
+                        ? Column(
+                            children: [
+                              Text(
+                                "AP修正値",
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                "${card.apCorrection}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Container(),
+                  ],
+                ),
+              )
+            : Container(),
+        card.hp != null || card.hpCorrection != null
+            ? Container(
+                padding: EdgeInsetsGeometry.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.blueAccent),
+                ),
+                child: Row(
+                  children: [
+                    card.hp != null
+                        ? Column(
+                            children: [
+                              Text(
+                                "HP",
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                "${card.hp}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.blueAccent,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Container(),
+                    card.hpCorrection != null
+                        ? Column(
+                            children: [
+                              Text(
+                                "HP修正値",
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                "${card.hpCorrection}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.blueAccent,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Container(),
+                  ],
+                ),
+              )
+            : Container(),
+      ],
     );
   }
 }

@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:senkai_sengi/models/card_data.dart';
-import 'package:senkai_sengi/utils/color_utils.dart';
+import 'package:senkai_sengi/utils/color_manager.dart';
 import 'package:senkai_sengi/widgets/card_tile.dart';
 
 class HoloCard extends StatefulWidget {

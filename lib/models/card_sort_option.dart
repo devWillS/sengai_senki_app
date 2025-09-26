@@ -29,9 +29,9 @@ extension CardSortOptionLabel on CardSortOption {
       case CardSortOption.costDescending:
         return 'コスト 降順';
       case CardSortOption.apDescending:
-        return 'AP 高い順';
+        return 'AP 降順';
       case CardSortOption.hpDescending:
-        return 'HP 高い順';
+        return 'HP 降順';
     }
   }
 

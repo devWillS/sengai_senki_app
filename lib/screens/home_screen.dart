@@ -33,8 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     return CupertinoTabScaffold(
       controller: _tabController,
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.black,
       tabBar: CupertinoTabBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         activeColor: theme.colorScheme.primary,
         inactiveColor: theme.colorScheme.onSurfaceVariant,
         items: const [
@@ -57,17 +59,23 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       tabBuilder: (context, index) {
-        switch (index) {
-          case 0:
-            return CupertinoTabView(builder: (_) => const CardListScreen());
-          case 1:
-            return CupertinoTabView(builder: (_) => const DeckListScreen());
-          case 2:
-            return CupertinoTabView(builder: (_) => const EventListScreen());
-          case 3:
-          default:
-            return CupertinoTabView(builder: (_) => const InfoPortalScreen());
-        }
+        Widget view;
+        return CupertinoTabView(
+          builder: (_) {
+            switch (index) {
+              case 0:
+                view = const CardListScreen();
+              case 1:
+                view = const DeckListScreen();
+              case 2:
+                view = const EventListScreen();
+              case 3:
+              default:
+                view = const InfoPortalScreen();
+            }
+            return SafeArea(top: false, child: view);
+          },
+        );
       },
     );
   }

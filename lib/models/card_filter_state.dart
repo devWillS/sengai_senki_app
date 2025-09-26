@@ -69,7 +69,9 @@ class CardFilterState {
         card.name.toLowerCase().contains(keywordLower) ||
         card.id.toLowerCase().contains(keywordLower) ||
         (card.feature?.toLowerCase().contains(keywordLower) ?? false) ||
-        (card.attribute?.toLowerCase().contains(keywordLower) ?? false);
+        (card.attribute?.toLowerCase().contains(keywordLower) ?? false) ||
+        (card.illustrator?.toLowerCase().contains(keywordLower) ?? false) ||
+        (card.type.toLowerCase().contains(keywordLower));
 
     final matchesColor = colors.isEmpty || colors.contains(card.color);
     final matchesRarity = rarities.isEmpty || rarities.contains(card.rarity);
