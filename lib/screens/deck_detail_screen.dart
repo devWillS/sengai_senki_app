@@ -350,8 +350,24 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                               child: const Icon(Icons.content_copy_outlined),
                             ),
                             ElevatedButton(
-                              // onPressed: onPressedSimulate,
-                              onPressed: () {},
+                              onPressed: () {
+                                showCupertinoDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return CupertinoAlertDialog(
+                                      title: Text("Coming soon..."),
+                                      content: Text("ソロプレイモードは現在開発中です"),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
                               child: const Icon(CupertinoIcons.game_controller),
                             ),
                           ],
