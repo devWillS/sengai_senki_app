@@ -208,7 +208,7 @@ class _DeckWidgetLandState extends ConsumerState<DeckScreenshotScreen>
       final directory = Directory('/storage/emulated/0/Pictures');
       final imagePath =
           '${directory.path}/screenshot_${DateTime.now().millisecondsSinceEpoch}.png';
-      final image = await screenshotController.capture(pixelRatio: 10.0);
+      final image = await screenshotController.capture(pixelRatio: 7.0);
       if (image != null) {
         final file = File(imagePath);
         await file.writeAsBytes(image);
