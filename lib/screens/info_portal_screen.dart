@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class InfoPortalScreen extends StatelessWidget {
@@ -168,13 +169,20 @@ class InfoPortalScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    '1.0.0',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+
+                  FutureBuilder(
+                    future: currentVer(),
+                    builder:
+                        (BuildContext context, AsyncSnapshot<String> snapshot) {
+                          return Text(
+                            snapshot.data ?? "",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        },
                   ),
                 ],
               ),
@@ -183,6 +191,11 @@ class InfoPortalScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<String> currentVer() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    return packageInfo.version;
   }
 }
 
