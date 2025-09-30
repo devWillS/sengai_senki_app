@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:senkai_sengi/screens/card_detail_overlay.dart';
 import 'package:senkai_sengi/screens/deck_screenshot_screen.dart';
+import 'package:senkai_sengi/screens/solo_play_screen.dart';
 import 'package:senkai_sengi/utils/master.dart';
 import 'package:senkai_sengi/widgets/card_tile.dart';
 import 'package:senkai_sengi/widgets/cost_curve_chart.dart';
@@ -350,22 +351,16 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                               child: const Icon(Icons.content_copy_outlined),
                             ),
                             ElevatedButton(
-                              onPressed: () {
-                                showCupertinoDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return CupertinoAlertDialog(
-                                      title: Text("Coming soon..."),
-                                      content: Text("ソロプレイモードは現在開発中です"),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(context).pop(),
-                                          child: const Text('OK'),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                              onPressed: () async {
+                                // 現在のデッキ状態を取得してソロプレイ画面へ遷移
+                                final currentDeck = await _buildCurrentDeck();
+                                if (!mounted) return;
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => SoloPlayScreen(
+                                      deck: currentDeck,
+                                    ),
+                                  ),
                                 );
                               },
                               child: const Icon(CupertinoIcons.game_controller),
