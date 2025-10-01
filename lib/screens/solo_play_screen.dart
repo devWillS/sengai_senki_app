@@ -25,6 +25,10 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
   List<CardData> _magicDeck = [];
   List<CardData> _wallZone = []; // ウォールゾーンのカード
 
+  // 3つのレーンごとのカードを管理
+  // 各レーン: [怪魔カード(1枚), ...付与カード(複数)]
+  List<List<CardData>> _lanes = [[], [], []];
+
   // ゲーム状態
   bool _isGameStarted = false;
   int _turnCount = 0;
@@ -65,6 +69,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
       _graveyard = [];
       _wallZone = [];
       _magicZone = [];
+      _lanes = [[], [], []];
       _isGameStarted = false;
       _turnCount = 0;
     });
@@ -108,9 +113,116 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
 
   void _playCard(int handIndex) {
     if (handIndex < _hand.length) {
+      final card = _hand[handIndex];
+
+      showCupertinoModalPopup(
+        context: context,
+        builder: (BuildContext context) => CupertinoActionSheet(
+          title: const Text('カードをプレイ'),
+          message: Text('${card.name}をどこに配置しますか？'),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _placeCardInLane(handIndex, 0);
+              },
+              child: const Text('レーン1に配置'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _placeCardInLane(handIndex, 1);
+              },
+              child: const Text('レーン2に配置'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _placeCardInLane(handIndex, 2);
+              },
+              child: const Text('レーン3に配置'),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(context);
+                _discardCard(handIndex);
+              },
+              child: const Text('捨て札に送る'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            isDefaultAction: true,
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('キャンセル'),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _placeCardInLane(int handIndex, int laneIndex) {
+    if (handIndex < _hand.length) {
+      final card = _hand[handIndex];
+
+      // カードタイプを判定（仮実装：コストが高いカードを怪魔カードとする）
+      bool isMonsterCard = card.type == "怪魔"; // 怪魔カードの判定条件（要調整）
+
       setState(() {
-        final card = _hand.removeAt(handIndex);
-        _field.add(card);
+        if (isMonsterCard && _lanes[laneIndex].isNotEmpty) {
+          // 怪魔カードで既に怪魔カードがある場合、置き換え確認
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('カードの置き換え'),
+              content: Text('レーン${laneIndex + 1}の怪魔カードを${card.name}に置き換えますか？'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('キャンセル'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  child: const Text('置き換える'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      // 既存の怪魔カードを捨て札へ
+                      _graveyard.add(_lanes[laneIndex][0]);
+                      _lanes[laneIndex][0] = _hand.removeAt(handIndex);
+                    });
+                  },
+                ),
+              ],
+            ),
+          );
+        } else if (isMonsterCard) {
+          // 怪魔カードで空きレーンの場合
+          _lanes[laneIndex].insert(0, _hand.removeAt(handIndex));
+        } else {
+          // 付与カードの場合
+          if (_lanes[laneIndex].isEmpty) {
+            // レーンが空の場合は配置できない
+            showCupertinoDialog(
+              context: context,
+              builder: (context) => CupertinoAlertDialog(
+                title: const Text('配置できません'),
+                content: const Text('付与カードは怪魔カードがいるレーンにのみ配置できます'),
+                actions: [
+                  CupertinoDialogAction(
+                    child: const Text('OK'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            // 付与カードを追加
+            _lanes[laneIndex].add(_hand.removeAt(handIndex));
+          }
+        }
       });
     }
   }
@@ -336,10 +448,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                           ChoiceChip(
                             label: Column(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text('先攻'),
-                                Text('初期手札4枚', style: TextStyle(fontSize: 10)),
-                              ],
+                              children: const [Text('先攻')],
                             ),
                             selected: _isFirstPlayer,
                             onSelected: (selected) {
@@ -351,17 +460,15 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                             labelStyle: TextStyle(
                               color: _isFirstPlayer
                                   ? Colors.white
-                                  : Colors.white70,
+                                  : Colors.black,
                             ),
+                            showCheckmark: false,
                           ),
                           const SizedBox(width: 16),
                           ChoiceChip(
                             label: Column(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text('後攻'),
-                                Text('初期手札4枚', style: TextStyle(fontSize: 10)),
-                              ],
+                              children: const [Text('後攻')],
                             ),
                             selected: !_isFirstPlayer,
                             onSelected: (selected) {
@@ -373,8 +480,9 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                             labelStyle: TextStyle(
                               color: !_isFirstPlayer
                                   ? Colors.white
-                                  : Colors.white70,
+                                  : Colors.black,
                             ),
+                            showCheckmark: false,
                           ),
                         ],
                       ),
@@ -436,7 +544,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                                 top: 0,
                                 left: playmatConstraints.maxWidth * 0.17,
                                 right: playmatConstraints.maxWidth * 0.17,
-                                height: playmatConstraints.maxHeight * 0.35,
+                                height: playmatConstraints.maxHeight * 0.535,
                                 child: _buildLanes(playmatConstraints),
                               ),
                               // 左側：ウォールゾーン
@@ -475,7 +583,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                                 bottom: playmatConstraints.maxHeight * 0.035,
                                 width: playmatConstraints.maxWidth * 0.17,
                                 height: playmatConstraints.maxHeight * 0.43,
-                                child: _buildGraveyard(),
+                                child: _buildGraveyard(playmatConstraints),
                               ),
                             ],
                           );
@@ -739,7 +847,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                       final card = _hand[index];
                       return GestureDetector(
                         onTap: () => _playCard(index),
-                        onLongPress: () => _discardCard(index),
                         child: Container(
                           width: 85,
                           margin: const EdgeInsets.only(right: 4),
@@ -762,7 +869,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                                     ),
                                   ),
                                   child: const Text(
-                                    'タップ:場\n長押し:捨て',
+                                    'タップ:選択',
                                     style: TextStyle(
                                       color: Colors.white70,
                                       fontSize: 9,
@@ -787,28 +894,155 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
   Widget _buildLanes(BoxConstraints playmatConstraints) {
     return Row(
       children: List.generate(3, (index) {
-        final laneCards = _field
-            .where((card) => _field.indexOf(card) % 3 == index)
-            .toList();
+        final laneCards = _lanes[index];
         return Expanded(
-          child: laneCards.isEmpty
-              ? const Center(
-                  child: Text(
-                    '空',
-                    style: TextStyle(color: Colors.white24, fontSize: 12),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: laneCards.length,
-                  itemBuilder: (context, cardIndex) {
-                    return SizedBox(
-                      height: playmatConstraints.maxWidth * 0.2,
-                      child: CardTile(card: laneCards[cardIndex]),
-                    );
-                  },
-                ),
+          child: Container(
+            child: laneCards.isEmpty
+                ? const Center(
+                    child: Text(
+                      '空',
+                      style: TextStyle(color: Colors.white24, fontSize: 12),
+                    ),
+                  )
+                : _buildLaneStack(laneCards, playmatConstraints, index),
+          ),
         );
       }),
+    );
+  }
+
+  // レーン内のカードスタックを構築
+  Widget _buildLaneStack(
+    List<CardData> laneCards,
+    BoxConstraints constraints,
+    int laneIndex,
+  ) {
+    double cardHeight = constraints.maxWidth * 0.2;
+    double overlapOffset = 15.0; // 付与カードのずれ量
+
+    return GestureDetector(
+      onTap: () => _showLaneDetail(laneIndex),
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          // 付与カード（下にずれて表示）
+          ...List.generate(laneCards.length > 1 ? laneCards.length - 1 : 0, (
+            index,
+          ) {
+            final attachmentIndex = index + 1;
+            return Positioned(
+              top: overlapOffset * (index + 1), // 怪魔カードの下にずれて配置
+              child: Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  height: cardHeight,
+                  width: cardHeight * 670 / 950,
+                  child: CardTile(card: laneCards[attachmentIndex]),
+                ),
+              ),
+            );
+          }).reversed,
+
+          // 怪魔カード（上部・最前面）
+          if (laneCards.isNotEmpty)
+            Positioned(
+              top: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  height: cardHeight,
+                  width: cardHeight * 670 / 950,
+                  child: CardTile(card: laneCards[0]),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // レーンの詳細を表示
+  void _showLaneDetail(int laneIndex) {
+    if (_lanes[laneIndex].isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black87,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'レーン${laneIndex + 1}の詳細',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 怪魔カード
+              if (_lanes[laneIndex].isNotEmpty) ...[
+                const Text(
+                  '怪魔カード:',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 150,
+                  child: CardTile(card: _lanes[laneIndex][0]),
+                ),
+              ],
+              // 付与カード
+              if (_lanes[laneIndex].length > 1) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  '付与カード:',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _lanes[laneIndex].length - 1,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        width: 70,
+                        margin: const EdgeInsets.only(right: 4),
+                        child: CardTile(card: _lanes[laneIndex][index + 1]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('閉じる'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -898,6 +1132,70 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
         ),
       );
     }
+  }
+
+  // 捨て札の詳細を表示
+  void _showGraveyardDetail() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black87,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '捨て札 (${_graveyard.length}枚)',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 400,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.red.withOpacity(0.5)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _graveyard.isEmpty
+                    ? const Center(
+                        child: Text(
+                          '捨て札にカードがありません',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(8),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              childAspectRatio: 670 / 950,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                        itemCount: _graveyard.length,
+                        itemBuilder: (context, index) {
+                          return CardTile(card: _graveyard[index]);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // 魔力デッキ
@@ -1067,7 +1365,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                       final card = _hand[index];
                       return GestureDetector(
                         onTap: () => _playCard(index),
-                        onLongPress: () => _discardCard(index),
                         child: Container(
                           width: 100,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -1079,7 +1376,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                                   vertical: 2,
                                 ),
                                 child: const Text(
-                                  'タップ:場 | 長押し:捨て',
+                                  'タップ:選択',
                                   style: TextStyle(
                                     color: Colors.white54,
                                     fontSize: 9,
@@ -1130,7 +1427,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                       final card = _hand[index];
                       return GestureDetector(
                         onTap: () => _playCard(index),
-                        onLongPress: () => _discardCard(index),
                         child: CardTile(card: card),
                       );
                     },
@@ -1142,34 +1438,23 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
   }
 
   // 捨て札
-  Widget _buildGraveyard() {
+  Widget _buildGraveyard(BoxConstraints playmatConstraints) {
+    double cardHeight = playmatConstraints.maxWidth * 0.2;
     return GestureDetector(
-      onLongPress: _graveyard.isNotEmpty ? _reshuffleGraveyard : null,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.red.withOpacity(0.5), width: 1),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.delete, color: Colors.red, size: 30),
-            const SizedBox(height: 4),
-            const Text(
-              '捨て札',
-              style: TextStyle(color: Colors.white54, fontSize: 10),
-            ),
-            Text(
-              '${_graveyard.length}枚',
-              style: TextStyle(color: Colors.red[300], fontSize: 18),
-            ),
-            if (_graveyard.isNotEmpty)
-              const Text(
-                '長押しでシャッフル',
-                style: TextStyle(color: Colors.white38, fontSize: 9),
+      onTap: _graveyard.isNotEmpty ? () => _showGraveyardDetail() : null,
+      child: Center(
+        child: _graveyard.isEmpty
+            ? const Text(
+                '空',
+                style: TextStyle(color: Colors.white54, fontSize: 10),
+              )
+            : SizedBox(
+                height: cardHeight,
+                child: AspectRatio(
+                  aspectRatio: 670 / 950,
+                  child: CardTile(card: _graveyard.last),
+                ),
               ),
-          ],
-        ),
       ),
     );
   }
@@ -1191,9 +1476,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
           ElevatedButton.icon(
             onPressed: _nextPhase,
             icon: const Icon(Icons.skip_next, size: 16),
-            label: Text('ターン終了',
-              style: const TextStyle(fontSize: 12),
-            ),
+            label: Text('ターン終了', style: const TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
