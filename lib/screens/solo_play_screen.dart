@@ -45,12 +45,24 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   bool _isGameStarted = false;
   int _turnCount = 0;
   bool _isFirstPlayer = true; // true: 先攻, false: 後攻
+  bool _isLibraryTopCardFaceUp = false;
+  bool _isMagicDeckTopCardFaceUp = false;
+  late final AnimationController _libraryFlipController;
+  late final AnimationController _magicDeckFlipController;
 
   List<CardData> _magicZone = []; // 魔力ゾーンのカード
 
   @override
   void initState() {
     super.initState();
+    _libraryFlipController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _magicDeckFlipController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
     _initializeGame();
   }
 
@@ -59,6 +71,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     for (final controller in _flipAnimationControllers) {
       controller.dispose();
     }
+    _libraryFlipController.dispose();
+    _magicDeckFlipController.dispose();
     super.dispose();
   }
 
@@ -93,6 +107,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
       _laneCardRotations = [[], [], []];
       _magicCardRotations = [];
       _magicCardFaceUp = [];
+      _isLibraryTopCardFaceUp = false;
+      _isMagicDeckTopCardFaceUp = false;
 
       // 既存のアニメーションコントローラーを破棄
       for (final controller in _flipAnimationControllers) {
@@ -102,11 +118,15 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
       _isGameStarted = false;
       _turnCount = 0;
     });
+
+    _libraryFlipController.reset();
+    _magicDeckFlipController.reset();
   }
 
   void _startGame() {
     setState(() {
       _shuffleDeck();
+      _shuffleMagicDeck();
       // ウォールゾーンに4枚配置
       _placeWallCards();
       // 初期手札4枚ドロー
@@ -125,18 +145,34 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     for (int i = 0; i < 4 && _library.isNotEmpty; i++) {
       _wallZone.add(_library.removeAt(0));
     }
+    _isLibraryTopCardFaceUp = false;
+    _libraryFlipController.reset();
+    _isMagicDeckTopCardFaceUp = false;
+    _magicDeckFlipController.reset();
   }
 
   void _shuffleDeck() {
     final random = Random();
     _library.shuffle(random);
+    _isLibraryTopCardFaceUp = false;
+    _libraryFlipController.reset();
+  }
+
+  void _shuffleMagicDeck() {
+    final random = Random();
+    _magicDeck.shuffle(random);
+    _isMagicDeckTopCardFaceUp = false;
+    _magicDeckFlipController.reset();
   }
 
   void _drawCards(int count) {
     for (int i = 0; i < count && _library.isNotEmpty; i++) {
       setState(() {
-        _hand.add(_library.removeAt(0));
+        final drawnCard = _library.removeAt(0);
+        _hand.add(drawnCard);
+        _isLibraryTopCardFaceUp = false;
       });
+      _libraryFlipController.reset();
     }
   }
 
@@ -361,6 +397,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     for (int i = 0; i < magicCards && _magicDeck.isNotEmpty; i++) {
       final card = _magicDeck.removeAt(0);
       _addMagicCardToZone(card);
+      _isMagicDeckTopCardFaceUp = false;
+      _magicDeckFlipController.reset();
     }
   }
 
@@ -719,232 +757,15 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     );
   }
 
-  Widget _buildLibraryAndGraveyard() {
-    return Row(
-      children: [
-        // ライブラリ
-        Expanded(
-          child: GestureDetector(
-            onTap: () => _drawCards(1),
-            child: Container(
-              height: 140,
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue, width: 2),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.library_books, color: Colors.blue, size: 40),
-                  const SizedBox(height: 8),
-                  Text(
-                    'ライブラリ',
-                    style: TextStyle(color: Colors.blue[200], fontSize: 14),
-                  ),
-                  Text(
-                    '${_library.length}枚',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'タップでドロー',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // 墓地
-        Expanded(
-          child: GestureDetector(
-            onLongPress: _graveyard.isNotEmpty ? _reshuffleGraveyard : null,
-            child: Container(
-              height: 140,
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red, width: 2),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.delete, color: Colors.red, size: 40),
-                  const SizedBox(height: 8),
-                  Text(
-                    '墓地',
-                    style: TextStyle(color: Colors.red[200], fontSize: 14),
-                  ),
-                  Text(
-                    '${_graveyard.length}枚',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (_graveyard.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    const Text(
-                      '長押しでシャッフル',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.withOpacity(0.8), width: 1),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.landscape, color: Colors.green[300], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                '場 (${_field.length}枚)',
-                style: TextStyle(color: Colors.green[300], fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 120,
-            child: _field.isEmpty
-                ? Center(
-                    child: Text(
-                      'カードがありません',
-                      style: TextStyle(color: Colors.green[200]),
-                    ),
-                  )
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _field.length,
-                    itemBuilder: (context, index) {
-                      final card = _field[index];
-                      return GestureDetector(
-                        onTap: () => _moveFieldToGraveyard(index),
-                        child: Container(
-                          width: 85,
-                          margin: const EdgeInsets.only(right: 4),
-                          child: Stack(
-                            children: [
-                              CardTile(card: card),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                    size: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHand() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange.withOpacity(0.8), width: 1),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.pan_tool, color: Colors.orange[300], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                '手札 (${_hand.length}枚)',
-                style: TextStyle(color: Colors.orange[300], fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 120,
-            child: _hand.isEmpty
-                ? Center(
-                    child: Text(
-                      'カードがありません',
-                      style: TextStyle(color: Colors.orange[200]),
-                    ),
-                  )
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _hand.length,
-                    itemBuilder: (context, index) {
-                      final card = _hand[index];
-                      return GestureDetector(
-                        onTap: () => _playCard(index),
-                        child: Container(
-                          width: 85,
-                          margin: const EdgeInsets.only(right: 4),
-                          child: Stack(children: [CardTile(card: card)]),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // 上部レーン（3つの攻撃ゾーン）
   Widget _buildLanes(BoxConstraints playmatConstraints) {
     return Row(
       children: List.generate(3, (index) {
         final laneCards = _lanes[index];
         return Expanded(
-          child: Container(
-            child: laneCards.isEmpty
-                ? const Center(
-                    child: Text(
-                      '空',
-                      style: TextStyle(color: Colors.white24, fontSize: 12),
-                    ),
-                  )
-                : _buildLaneStack(laneCards, playmatConstraints, index),
-          ),
+          child: laneCards.isEmpty
+              ? Container()
+              : _buildLaneStack(laneCards, playmatConstraints, index),
         );
       }),
     );
@@ -1104,7 +925,92 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                 },
                 child: const Text('表向きにする'),
               ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  if (_magicZone.length > cardIndex) {
+                    final cardToDeck = _magicZone.removeAt(cardIndex);
+                    if (_magicCardRotations.length > cardIndex) {
+                      _magicCardRotations.removeAt(cardIndex);
+                    }
+                    if (_magicCardFaceUp.length > cardIndex) {
+                      _magicCardFaceUp.removeAt(cardIndex);
+                    }
+                    if (_flipAnimationControllers.length > cardIndex) {
+                      final controller = _flipAnimationControllers.removeAt(
+                        cardIndex,
+                      );
+                      controller.dispose();
+                    }
+
+                    _magicDeck.insert(0, cardToDeck);
+                    _isMagicDeckTopCardFaceUp = false;
+                    _magicDeckFlipController.reset();
+                  }
+                });
+              },
+              child: const Text('魔力デッキの上に裏向きで移す'),
+            ),
           ],
+          if (!isMagicCard)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  if (_lanes[laneIndex].length > cardIndex) {
+                    final cardToHand = _lanes[laneIndex].removeAt(cardIndex);
+                    if (_laneCardRotations[laneIndex].length > cardIndex) {
+                      _laneCardRotations[laneIndex].removeAt(cardIndex);
+                    }
+
+                    // 怪魔カード（インデックス0）を手札へ戻した場合、
+                    // その下の付与カードは捨て札へ移動
+                    if (cardIndex == 0 && _lanes[laneIndex].isNotEmpty) {
+                      _graveyard.addAll(_lanes[laneIndex]);
+                      _lanes[laneIndex].clear();
+                      _laneCardRotations[laneIndex].clear();
+                    }
+
+                    _hand.add(cardToHand);
+                  }
+                });
+              },
+              child: const Text('手札に移す'),
+            ),
+          if (!isMagicCard)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  if (_lanes[laneIndex].length > cardIndex) {
+                    final cardToDeck = _lanes[laneIndex].removeAt(cardIndex);
+                    if (_laneCardRotations[laneIndex].length > cardIndex) {
+                      _laneCardRotations[laneIndex].removeAt(cardIndex);
+                    }
+
+                    if (cardIndex == 0 && _lanes[laneIndex].isNotEmpty) {
+                      _graveyard.addAll(_lanes[laneIndex]);
+                      _lanes[laneIndex].clear();
+                      _laneCardRotations[laneIndex].clear();
+                    }
+
+                    _library.insert(0, cardToDeck);
+                    _isLibraryTopCardFaceUp = false;
+                    _libraryFlipController.reset();
+                  }
+                });
+              },
+              child: const Text('メインデッキの上に裏向きで移す'),
+            ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(context);
+              _moveCardToGraveyard(laneIndex, cardIndex, isMagicCard);
+            },
+            child: const Text('捨て札に送る'),
+          ),
         ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
@@ -1147,7 +1053,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
 
   // カードの詳細オーバーレイを表示
   void _showCardDetail(CardData card, {Object? heroTag}) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
         opaque: false,
         pageBuilder: (context, animation, secondaryAnimation) {
@@ -1160,6 +1066,57 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
+      ),
+    );
+  }
+
+  void _showMainDeckActionSheet() {
+    final bool hasCards = _library.isNotEmpty;
+
+    if (!hasCards) {
+      return;
+    }
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('メインデッキ'),
+        message: hasCards
+            ? Text("残り${_library.length}枚")
+            : const Text('デッキが空です'),
+        actions: [
+          if (hasCards)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _drawCards(1);
+              },
+              child: const Text('手札に加える'),
+            ),
+          if (hasCards)
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _toggleLibraryTopCardFace();
+              },
+              child: Text(
+                _isLibraryTopCardFaceUp ? '一番上のカードを裏向きにする' : '一番上のカードを表向きにする',
+              ),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _shuffleDeck();
+              });
+            },
+            child: const Text('デッキをシャッフルする'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('キャンセル'),
+        ),
       ),
     );
   }
@@ -1287,6 +1244,36 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     }
   }
 
+  Future<void> _toggleLibraryTopCardFace() async {
+    if (_library.isEmpty || _libraryFlipController.isAnimating) {
+      return;
+    }
+
+    await _libraryFlipController.animateTo(0.5);
+
+    setState(() {
+      _isLibraryTopCardFaceUp = !_isLibraryTopCardFaceUp;
+    });
+
+    await _libraryFlipController.animateTo(1.0);
+    _libraryFlipController.reset();
+  }
+
+  Future<void> _toggleMagicDeckTopCardFace() async {
+    if (_magicDeck.isEmpty || _magicDeckFlipController.isAnimating) {
+      return;
+    }
+
+    await _magicDeckFlipController.animateTo(0.5);
+
+    setState(() {
+      _isMagicDeckTopCardFaceUp = !_isMagicDeckTopCardFaceUp;
+    });
+
+    await _magicDeckFlipController.animateTo(1.0);
+    _magicDeckFlipController.reset();
+  }
+
   // レーンの詳細を表示
   void _showLaneDetail(int laneIndex) {
     if (_lanes[laneIndex].isEmpty) return;
@@ -1359,12 +1346,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   // ウォールゾーン - 重なり表示
   Widget _buildWallZone(BoxConstraints playmatConstraints) {
     return _wallZone.isEmpty
-        ? Center(
-            child: Text(
-              '空',
-              style: TextStyle(color: Colors.blue[200], fontSize: 12),
-            ),
-          )
+        ? Container()
         : _buildOverlappingWallCards(playmatConstraints);
   }
 
@@ -1464,12 +1446,23 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4,
                               childAspectRatio: 670 / 950,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 4,
+                              mainAxisSpacing: 4,
                             ),
                         itemCount: _graveyard.length,
                         itemBuilder: (context, index) {
-                          return CardTile(card: _graveyard[index]);
+                          final card = _graveyard[index];
+                          return GestureDetector(
+                            onTap: () => _showGraveyardCardActionSheet(index),
+                            onLongPress: () => _showCardDetail(
+                              card,
+                              heroTag: 'graveyard_detail_$index',
+                            ),
+                            child: CardTile(
+                              card: card,
+                              heroTag: 'graveyard_detail_$index',
+                            ),
+                          );
                         },
                       ),
               ),
@@ -1480,22 +1473,108 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     );
   }
 
+  void _showGraveyardCardActionSheet(int index) {
+    if (index < 0 || index >= _graveyard.length) {
+      return;
+    }
+
+    final CardData card = _graveyard[index];
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text(card.name),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                if (index >= 0 && index < _graveyard.length) {
+                  final removedCard = _graveyard.removeAt(index);
+                  _hand.add(removedCard);
+                }
+              });
+            },
+            child: const Text('手札に移す'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('キャンセル'),
+        ),
+      ),
+    );
+  }
+
+  void _showGraveyardActionSheet() {
+    if (_graveyard.isEmpty) {
+      return;
+    }
+
+    final CardData topCard = _graveyard.last;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text('捨て札（${_graveyard.length}枚）'),
+        message: Text('トップ: ${topCard.name}'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                final card = _graveyard.removeLast();
+                _hand.add(card);
+              });
+            },
+            child: const Text('手札に移す'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _showGraveyardDetail();
+            },
+            child: const Text('捨て札を確認する'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('キャンセル'),
+        ),
+      ),
+    );
+  }
+
   void _showMagicDeckActionSheet() {
     if (_magicDeck.isEmpty) {
       return;
     }
 
+    final topCard = _magicDeck.first;
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         title: const Text('魔力デッキ'),
+        message: Text("残り${_magicDeck.length}枚"),
         actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _toggleMagicDeckTopCardFace();
+            },
+            child: Text(
+              _isMagicDeckTopCardFaceUp ? '一番上のカードを裏向きにする' : '一番上のカードを表向きにする',
+            ),
+          ),
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.pop(context);
               setState(() {
                 final card = _magicDeck.removeAt(0);
                 _addMagicCardToZone(card);
+                _isMagicDeckTopCardFaceUp = false;
+                _magicDeckFlipController.reset();
               });
             },
             child: const Text('魔力ゾーンに追加する'),
@@ -1514,34 +1593,63 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     double cardHeight = playmatConstraints.maxWidth * 0.2;
     return GestureDetector(
       onTap: _showMagicDeckActionSheet,
+      onLongPress: _magicDeck.isNotEmpty && _isMagicDeckTopCardFaceUp
+          ? () => _showCardDetail(
+              _magicDeck.first,
+              heroTag: 'magic_deck_top_card',
+            )
+          : null,
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
         child: _magicDeck.isEmpty
-            ? AspectRatio(
-                aspectRatio: 670 / 950,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.purple.withOpacity(0.5),
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: const Text(
-                      '空',
-                      style: TextStyle(color: Colors.red, fontSize: 16),
-                    ),
-                  ),
-                ),
-              )
+            ? AspectRatio(aspectRatio: 670 / 950, child: Container())
             : ClipRRect(
                 borderRadius: BorderRadius.circular(cardHeight / 1407 * 30),
                 child: AspectRatio(
                   aspectRatio: 670 / 950,
-                  child: Image.asset(
-                    'assets/images/power_card_back.png',
-                    fit: BoxFit.cover,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (_magicDeck.length > 1)
+                        Image.asset(
+                          'assets/images/power_card_back.png',
+                          fit: BoxFit.cover,
+                        ),
+                      AnimatedBuilder(
+                        animation: _magicDeckFlipController,
+                        builder: (context, child) {
+                          final double flipValue =
+                              _magicDeckFlipController.value;
+                          double scaleX;
+                          if (flipValue <= 0.5) {
+                            scaleX = 1.0 - (flipValue * 2);
+                          } else {
+                            scaleX = (flipValue - 0.5) * 2;
+                          }
+                          scaleX = scaleX.clamp(0.0, 1.0);
+
+                          final Widget topCard = _isMagicDeckTopCardFaceUp
+                              ? CardTile(
+                                  card: _magicDeck.first,
+                                  heroTag: 'magic_deck_top_card',
+                                )
+                              : Image.asset(
+                                  'assets/images/power_card_back.png',
+                                  fit: BoxFit.cover,
+                                );
+
+                          return Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.diagonal3Values(
+                              scaleX,
+                              1.0,
+                              1.0,
+                            ),
+                            child: topCard,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1553,35 +1661,60 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   Widget _buildMainDeck(BoxConstraints playmatConstraints) {
     double cardHeight = playmatConstraints.maxWidth * 0.2;
     return GestureDetector(
-      onTap: () => _drawCards(1),
+      onTap: _showMainDeckActionSheet,
+      onLongPress: _library.isNotEmpty && _isLibraryTopCardFaceUp
+          ? () => _showCardDetail(_library.first, heroTag: 'library_top_card')
+          : null,
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
         child: _library.isEmpty
-            ? AspectRatio(
-                aspectRatio: 670 / 950,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.blue.withOpacity(0.5),
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: const Text(
-                      '空',
-                      style: TextStyle(color: Colors.red, fontSize: 18),
-                    ),
-                  ),
-                ),
-              )
+            ? AspectRatio(aspectRatio: 670 / 950, child: Container())
             : ClipRRect(
                 borderRadius: BorderRadius.circular(cardHeight / 1407 * 30),
                 child: AspectRatio(
                   aspectRatio: 670 / 950,
-                  child: Image.asset(
-                    'assets/images/main_card_back.png',
-                    fit: BoxFit.cover,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (_library.length > 1)
+                        Image.asset(
+                          'assets/images/main_card_back.png',
+                          fit: BoxFit.cover,
+                        ),
+                      AnimatedBuilder(
+                        animation: _libraryFlipController,
+                        builder: (context, child) {
+                          final double flipValue = _libraryFlipController.value;
+                          double scaleX;
+                          if (flipValue <= 0.5) {
+                            scaleX = 1.0 - (flipValue * 2);
+                          } else {
+                            scaleX = (flipValue - 0.5) * 2;
+                          }
+                          scaleX = scaleX.clamp(0.0, 1.0);
+
+                          final Widget topCard = _isLibraryTopCardFaceUp
+                              ? CardTile(
+                                  card: _library.first,
+                                  heroTag: 'library_top_card',
+                                )
+                              : Image.asset(
+                                  'assets/images/main_card_back.png',
+                                  fit: BoxFit.cover,
+                                );
+
+                          return Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.diagonal3Values(
+                              scaleX,
+                              1.0,
+                              1.0,
+                            ),
+                            child: topCard,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1596,12 +1729,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
         children: [
           Expanded(
             child: _magicZone.isEmpty
-                ? Center(
-                    child: Text(
-                      '空',
-                      style: TextStyle(color: Colors.purple[200], fontSize: 12),
-                    ),
-                  )
+                ? Container()
                 : GridView.builder(
                     padding: const EdgeInsets.all(2),
                     physics: NeverScrollableScrollPhysics(),
@@ -1793,16 +1921,13 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   Widget _buildGraveyard(BoxConstraints playmatConstraints) {
     double cardHeight = playmatConstraints.maxWidth * 0.2;
     return GestureDetector(
-      onTap: _graveyard.isNotEmpty ? () => _showGraveyardDetail() : null,
+      onTap: _graveyard.isNotEmpty ? _showGraveyardActionSheet : null,
       onLongPress: _graveyard.isNotEmpty
           ? () => _showCardDetail(_graveyard.last, heroTag: 'graveyard_top')
           : null,
       child: Center(
         child: _graveyard.isEmpty
-            ? const Text(
-                '空',
-                style: TextStyle(color: Colors.white54, fontSize: 10),
-              )
+            ? Container()
             : SizedBox(
                 height: cardHeight,
                 child: AspectRatio(
