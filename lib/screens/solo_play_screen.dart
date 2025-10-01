@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:senkai_sengi/models/card_data.dart';
 import 'package:senkai_sengi/models/deck.dart';
+import 'package:senkai_sengi/screens/card_detail_overlay.dart';
 import 'package:senkai_sengi/utils/master.dart';
 import 'package:senkai_sengi/widgets/card_tile.dart';
 
@@ -16,7 +17,8 @@ class SoloPlayScreen extends StatefulWidget {
   State<SoloPlayScreen> createState() => _SoloPlayScreenState();
 }
 
-class _SoloPlayScreenState extends State<SoloPlayScreen> {
+class _SoloPlayScreenState extends State<SoloPlayScreen>
+    with TickerProviderStateMixin {
   // ゲームエリア
   List<CardData> _library = [];
   List<CardData> _hand = [];
@@ -29,6 +31,16 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
   // 各レーン: [怪魔カード(1枚), ...付与カード(複数)]
   List<List<CardData>> _lanes = [[], [], []];
 
+  // カードの回転状態管理（true: アップ、false: ダウン）
+  // レーンカード用: _laneCardRotations[laneIndex][cardIndex]
+  List<List<bool>> _laneCardRotations = [[], [], []];
+  // 魔力カード用
+  List<bool> _magicCardRotations = [];
+  // 魔力カードの表裏状態管理（true: 表向き、false: 裏向き）
+  List<bool> _magicCardFaceUp = [];
+  // フリップアニメーション用のAnimationController
+  List<AnimationController> _flipAnimationControllers = [];
+
   // ゲーム状態
   bool _isGameStarted = false;
   int _turnCount = 0;
@@ -40,6 +52,14 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
   void initState() {
     super.initState();
     _initializeGame();
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _flipAnimationControllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   void _initializeGame() {
@@ -70,6 +90,15 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
       _wallZone = [];
       _magicZone = [];
       _lanes = [[], [], []];
+      _laneCardRotations = [[], [], []];
+      _magicCardRotations = [];
+      _magicCardFaceUp = [];
+
+      // 既存のアニメーションコントローラーを破棄
+      for (final controller in _flipAnimationControllers) {
+        controller.dispose();
+      }
+      _flipAnimationControllers = [];
       _isGameStarted = false;
       _turnCount = 0;
     });
@@ -126,21 +155,21 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                 Navigator.pop(context);
                 _placeCardInLane(handIndex, 0);
               },
-              child: const Text('レーン1に配置'),
+              child: const Text('左レーンに配置'),
             ),
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(context);
                 _placeCardInLane(handIndex, 1);
               },
-              child: const Text('レーン2に配置'),
+              child: const Text('中央レーンに配置'),
             ),
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.pop(context);
                 _placeCardInLane(handIndex, 2);
               },
-              child: const Text('レーン3に配置'),
+              child: const Text('右レーンに配置'),
             ),
             CupertinoActionSheetAction(
               isDestructiveAction: true,
@@ -177,7 +206,9 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
             context: context,
             builder: (context) => CupertinoAlertDialog(
               title: const Text('カードの置き換え'),
-              content: Text('レーン${laneIndex + 1}の怪魔カードを${card.name}に置き換えますか？'),
+              content: Text(
+                '${_getLaneName(laneIndex)}の怪魔カードを${card.name}に置き換えますか？',
+              ),
               actions: [
                 CupertinoDialogAction(
                   child: const Text('キャンセル'),
@@ -192,6 +223,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                       // 既存の怪魔カードを捨て札へ
                       _graveyard.add(_lanes[laneIndex][0]);
                       _lanes[laneIndex][0] = _hand.removeAt(handIndex);
+                      _laneCardRotations[laneIndex][0] = true; // 新しいカードはアップ
                     });
                   },
                 ),
@@ -201,6 +233,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
         } else if (isMonsterCard) {
           // 怪魔カードで空きレーンの場合
           _lanes[laneIndex].insert(0, _hand.removeAt(handIndex));
+          _laneCardRotations[laneIndex].insert(0, true); // 初期状態はアップ
         } else {
           // 付与カードの場合
           if (_lanes[laneIndex].isEmpty) {
@@ -221,6 +254,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
           } else {
             // 付与カードを追加
             _lanes[laneIndex].add(_hand.removeAt(handIndex));
+            _laneCardRotations[laneIndex].add(true); // 初期状態はアップ
           }
         }
       });
@@ -266,7 +300,23 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
 
   void _upPhase() {
     // 1.アップフェーズ：自分の怪魔を、魔力を全てアップ（タテ向きに）する
-    // 実装：すべてのカードをアップ状態にする（ここでは状態管理のみ）
+    setState(() {
+      // 各レーンのすべてのカードをアップ状態に
+      for (int laneIndex = 0; laneIndex < 3; laneIndex++) {
+        for (
+          int cardIndex = 0;
+          cardIndex < _laneCardRotations[laneIndex].length;
+          cardIndex++
+        ) {
+          _laneCardRotations[laneIndex][cardIndex] = true;
+        }
+      }
+
+      // 魔力カードをすべてアップ状態に
+      for (int i = 0; i < _magicCardRotations.length; i++) {
+        _magicCardRotations[i] = true;
+      }
+    });
   }
 
   void _drawPhase() {
@@ -278,7 +328,17 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
     // 3.セットフェーズ：魔力デッキの上から魔力を2つ（先攻１ターン目は1つ）、アップで魔力ゾーンに置く
     int magicCards = (_isFirstPlayer && _turnCount == 1) ? 1 : 2;
     for (int i = 0; i < magicCards && _magicDeck.isNotEmpty; i++) {
-      _magicZone.add(_magicDeck.removeAt(0));
+      final card = _magicDeck.removeAt(0);
+      _magicZone.add(card);
+      _magicCardRotations.add(true); // 初期状態はアップ
+      _magicCardFaceUp.add(true); // 初期状態は表向き
+
+      // フリップアニメーション用のコントローラーを追加
+      final flipController = AnimationController(
+        duration: const Duration(milliseconds: 300),
+        vsync: this,
+      );
+      _flipAnimationControllers.add(flipController);
     }
   }
 
@@ -309,6 +369,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
               onPressed: () {
                 setState(() {
                   _graveyard.add(_magicZone.removeAt(index));
+                  _magicCardRotations.removeAt(index);
                 });
                 Navigator.of(context).pop();
               },
@@ -318,6 +379,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
               onPressed: () {
                 setState(() {
                   _hand.add(_magicZone.removeAt(index));
+                  _magicCardRotations.removeAt(index);
                 });
                 Navigator.of(context).pop();
               },
@@ -850,36 +912,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                         child: Container(
                           width: 85,
                           margin: const EdgeInsets.only(right: 4),
-                          child: Stack(
-                            children: [
-                              CardTile(card: card),
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: const BorderRadius.only(
-                                      bottomLeft: Radius.circular(4),
-                                      bottomRight: Radius.circular(4),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'タップ:選択',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 9,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: Stack(children: [CardTile(card: card)]),
                         ),
                       );
                     },
@@ -920,61 +953,340 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
     double cardHeight = constraints.maxWidth * 0.2;
     double overlapOffset = 15.0; // 付与カードのずれ量
 
-    return GestureDetector(
-      onTap: () => _showLaneDetail(laneIndex),
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          // 付与カード（下にずれて表示）
-          ...List.generate(laneCards.length > 1 ? laneCards.length - 1 : 0, (
-            index,
-          ) {
-            final attachmentIndex = index + 1;
-            return Positioned(
-              top: overlapOffset * (index + 1), // 怪魔カードの下にずれて配置
-              child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: SizedBox(
-                  height: cardHeight,
-                  width: cardHeight * 670 / 950,
-                  child: CardTile(card: laneCards[attachmentIndex]),
-                ),
-              ),
-            );
-          }).reversed,
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        // 付与カード（下にずれて表示）
+        ...List.generate(laneCards.length > 1 ? laneCards.length - 1 : 0, (
+          index,
+        ) {
+          final attachmentIndex = index + 1;
+          final isRotated =
+              _laneCardRotations[laneIndex].length > attachmentIndex
+              ? _laneCardRotations[laneIndex][attachmentIndex]
+              : true;
 
-          // 怪魔カード（上部・最前面）
-          if (laneCards.isNotEmpty)
-            Positioned(
-              top: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+          return Positioned(
+            top: overlapOffset * (index + 1), // 怪魔カードの下にずれて配置
+            child: GestureDetector(
+              onTap: () =>
+                  _showCardActionSheet(laneIndex, attachmentIndex, false),
+              onLongPress: () => _showCardDetail(
+                _lanes[laneIndex][attachmentIndex],
+                heroTag: 'lane_${laneIndex}_attachment_$attachmentIndex',
+              ),
+              child: AnimatedRotation(
+                turns: isRotated ? 0 : -0.25, // 90度回転
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    height: cardHeight,
+                    width: cardHeight * 670 / 950,
+                    child: CardTile(
+                      card: laneCards[attachmentIndex],
+                      heroTag: 'lane_${laneIndex}_attachment_$attachmentIndex',
                     ),
-                  ],
-                ),
-                child: SizedBox(
-                  height: cardHeight,
-                  width: cardHeight * 670 / 950,
-                  child: CardTile(card: laneCards[0]),
+                  ),
                 ),
               ),
             ),
+          );
+        }).reversed,
+
+        // 怪魔カード（上部・最前面）
+        if (laneCards.isNotEmpty)
+          Positioned(
+            top: 0,
+            child: GestureDetector(
+              onTap: () => _showCardActionSheet(laneIndex, 0, false),
+              onLongPress: () => _showCardDetail(
+                _lanes[laneIndex][0],
+                heroTag: 'lane_${laneIndex}_monster',
+              ),
+              child: AnimatedRotation(
+                turns: _laneCardRotations[laneIndex].isNotEmpty
+                    ? (_laneCardRotations[laneIndex][0] ? 0 : -0.25)
+                    : 0,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    height: cardHeight,
+                    width: cardHeight * 670 / 950,
+                    child: CardTile(
+                      card: laneCards[0],
+                      heroTag: 'lane_${laneIndex}_monster',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // カードのアクションシートを表示
+  void _showCardActionSheet(int laneIndex, int cardIndex, bool isMagicCard) {
+    final CardData card = isMagicCard
+        ? _magicZone[cardIndex]
+        : _lanes[laneIndex][cardIndex];
+
+    final bool isCurrentlyUp = isMagicCard
+        ? (_magicCardRotations.length > cardIndex
+              ? _magicCardRotations[cardIndex]
+              : true)
+        : (_laneCardRotations[laneIndex].length > cardIndex
+              ? _laneCardRotations[laneIndex][cardIndex]
+              : true);
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text('カード操作'),
+        message: Text('${card.name}の状態を変更しますか？'),
+        actions: [
+          if (isCurrentlyUp)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _rotateCard(laneIndex, cardIndex, isMagicCard, false);
+              },
+              child: const Text('ダウン（ヨコ向き）にする'),
+            ),
+          if (!isCurrentlyUp)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(context);
+                _rotateCard(laneIndex, cardIndex, isMagicCard, true);
+              },
+              child: const Text('アップ（タテ向き）にする'),
+            ),
+          if (isMagicCard) ...[
+            if (_magicCardFaceUp.length > cardIndex &&
+                _magicCardFaceUp[cardIndex])
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _flipMagicCard(cardIndex, false);
+                },
+                child: const Text('裏向きにする'),
+              ),
+            if (_magicCardFaceUp.length > cardIndex &&
+                !_magicCardFaceUp[cardIndex])
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _flipMagicCard(cardIndex, true);
+                },
+                child: const Text('表向きにする'),
+              ),
+          ],
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(context);
+              _moveCardToGraveyard(laneIndex, cardIndex, isMagicCard);
+            },
+            child: const Text('捨て札に送る'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('キャンセル'),
+        ),
+      ),
+    );
+  }
+
+  // カードを回転
+  void _rotateCard(int laneIndex, int cardIndex, bool isMagicCard, bool toUp) {
+    setState(() {
+      if (isMagicCard) {
+        if (_magicCardRotations.length > cardIndex) {
+          _magicCardRotations[cardIndex] = toUp;
+        }
+      } else {
+        if (_laneCardRotations[laneIndex].length > cardIndex) {
+          _laneCardRotations[laneIndex][cardIndex] = toUp;
+        }
+      }
+    });
+  }
+
+  // カードを捨て札に移動
+  void _moveCardToGraveyard(int laneIndex, int cardIndex, bool isMagicCard) {
+    setState(() {
+      if (isMagicCard) {
+        _graveyard.add(_magicZone.removeAt(cardIndex));
+        _magicCardRotations.removeAt(cardIndex);
+      } else {
+        _graveyard.add(_lanes[laneIndex].removeAt(cardIndex));
+        _laneCardRotations[laneIndex].removeAt(cardIndex);
+      }
+    });
+  }
+
+  // カードの詳細オーバーレイを表示
+  void _showCardDetail(CardData card, {Object? heroTag}) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return CardDetailOverlay(
+            initialIndex: 0,
+            cards: [card],
+            heroTag: heroTag,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  // ウォールゾーンカードのアクションシートを表示
+  void _showWallCardActionSheet(int cardIndex) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text('ウォールカード'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _showWallCardDialog(cardIndex);
+            },
+            child: const Text('破壊する'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('キャンセル'),
+        ),
+      ),
+    );
+  }
+
+  // ウォールカードを表示するダイアログ
+  void _showWallCardDialog(int cardIndex) {
+    final card = _wallZone[cardIndex];
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoAlertDialog(
+        title: const Text('ウォールカード'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: CardTile(
+                card: card,
+                heroTag: 'wall_card_dialog_$cardIndex',
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              card.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: <CupertinoDialogAction>[
+          CupertinoDialogAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _moveWallCardToGraveyard(cardIndex);
+            },
+            child: const Text('捨て札に送る'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _moveWallCardToHand(cardIndex);
+            },
+            child: const Text('手札に加える'),
+          ),
         ],
       ),
     );
+  }
+
+  // ウォールカードを捨て札に送る
+  void _moveWallCardToGraveyard(int cardIndex) {
+    setState(() {
+      final card = _wallZone.removeAt(cardIndex);
+      _graveyard.add(card);
+    });
+  }
+
+  // ウォールカードを手札に加える
+  void _moveWallCardToHand(int cardIndex) {
+    setState(() {
+      final card = _wallZone.removeAt(cardIndex);
+      _hand.add(card);
+    });
+  }
+
+  // レーンインデックスから名前を取得
+  String _getLaneName(int laneIndex) {
+    switch (laneIndex) {
+      case 0:
+        return '左レーン';
+      case 1:
+        return '中央レーン';
+      case 2:
+        return '右レーン';
+      default:
+        return 'レーン${laneIndex + 1}';
+    }
+  }
+
+  // 魔力カードの表裏を切り替える
+  void _flipMagicCard(int cardIndex, bool faceUp) async {
+    if (_flipAnimationControllers.length > cardIndex) {
+      final controller = _flipAnimationControllers[cardIndex];
+
+      // 前半: カードを横向きに縮める（90度回転まで）
+      await controller.animateTo(0.5);
+
+      // 中間で表裏状態を切り替え
+      setState(() {
+        if (_magicCardFaceUp.length > cardIndex) {
+          _magicCardFaceUp[cardIndex] = faceUp;
+        }
+      });
+
+      // 後半: カードを元のサイズに戻す
+      await controller.animateTo(1.0);
+
+      // アニメーション完了後にリセット
+      controller.reset();
+    }
   }
 
   // レーンの詳細を表示
@@ -991,7 +1303,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'レーン${laneIndex + 1}の詳細',
+                '${_getLaneName(laneIndex)}の詳細',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -1081,7 +1393,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
             bottom: topOffset,
             left: leftOffset,
             child: GestureDetector(
-              onTap: () => _flipWallCard(index),
+              onTap: () => _showWallCardActionSheet(index),
               child: RotatedBox(
                 quarterTurns: -1,
                 child: SizedBox(
@@ -1104,34 +1416,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
         }),
       ),
     );
-  }
-
-  void _flipWallCard(int index) {
-    if (index < _wallZone.length) {
-      // ウォールカードをタップした時の処理（例：手札に移動）
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('ウォールカード'),
-          content: Text('カード: ${_wallZone[index].name}'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _hand.add(_wallZone.removeAt(index));
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('手札に移動'),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   // 捨て札の詳細を表示
@@ -1312,16 +1596,80 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                     itemBuilder: (context, index) {
                       final card = _magicZone[index];
                       return GestureDetector(
-                        onTap: () => _useMagicCard(index),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            border: Border.all(
-                              color: Colors.purple.withOpacity(0.5),
-                              width: 0.5,
-                            ),
+                        onTap: () => _showCardActionSheet(-1, index, true),
+                        onLongPress:
+                            (_magicCardFaceUp.length > index &&
+                                _magicCardFaceUp[index])
+                            ? () => _showCardDetail(
+                                _magicZone[index],
+                                heroTag: 'magic_zone_$index',
+                              )
+                            : null,
+                        child: AnimatedRotation(
+                          turns: _magicCardRotations.length > index
+                              ? (_magicCardRotations[index] ? 0 : -0.25)
+                              : 0,
+                          duration: const Duration(milliseconds: 300),
+                          child: AnimatedBuilder(
+                            animation: _flipAnimationControllers.length > index
+                                ? _flipAnimationControllers[index]
+                                : kAlwaysCompleteAnimation,
+                            builder: (context, child) {
+                              final flipValue =
+                                  _flipAnimationControllers.length > index
+                                  ? _flipAnimationControllers[index].value
+                                  : 0.0;
+
+                              // フリップアニメーション計算を修正
+                              // 0.0 = 完全表示, 0.5 = 完全非表示, 1.0 = 完全表示
+                              double scaleX;
+                              if (flipValue <= 0.5) {
+                                // 前半: 1.0 → 0.0 (縮む)
+                                scaleX = 1.0 - (flipValue * 2);
+                              } else {
+                                // 後半: 0.0 → 1.0 (戻る)
+                                scaleX = (flipValue - 0.5) * 2;
+                              }
+                              scaleX = scaleX.clamp(0.0, 1.0);
+
+                              return Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.diagonal3Values(
+                                  scaleX,
+                                  1.0,
+                                  1.0,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(2),
+                                    border: Border.all(
+                                      color: Colors.purple.withOpacity(0.5),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child:
+                                      _magicCardFaceUp.length > index &&
+                                          !_magicCardFaceUp[index]
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                          child: AspectRatio(
+                                            aspectRatio: 670 / 950,
+                                            child: Image.asset(
+                                              'assets/images/power_card_back.png',
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        )
+                                      : CardTile(
+                                          card: card,
+                                          heroTag: 'magic_zone_$index',
+                                        ),
+                                ),
+                              );
+                            },
                           ),
-                          child: CardTile(card: card),
                         ),
                       );
                     },
@@ -1365,27 +1713,11 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                       final card = _hand[index];
                       return GestureDetector(
                         onTap: () => _playCard(index),
+                        onLongPress: () =>
+                            _showCardDetail(card, heroTag: 'hand_$index'),
                         child: Container(
-                          width: 100,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Column(
-                            children: [
-                              Expanded(child: CardTile(card: card)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 2,
-                                ),
-                                child: const Text(
-                                  'タップ:選択',
-                                  style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 9,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: CardTile(card: card, heroTag: 'hand_$index'),
                         ),
                       );
                     },
@@ -1442,6 +1774,9 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
     double cardHeight = playmatConstraints.maxWidth * 0.2;
     return GestureDetector(
       onTap: _graveyard.isNotEmpty ? () => _showGraveyardDetail() : null,
+      onLongPress: _graveyard.isNotEmpty
+          ? () => _showCardDetail(_graveyard.last, heroTag: 'graveyard_top')
+          : null,
       child: Center(
         child: _graveyard.isEmpty
             ? const Text(
@@ -1452,7 +1787,10 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
                 height: cardHeight,
                 child: AspectRatio(
                   aspectRatio: 670 / 950,
-                  child: CardTile(card: _graveyard.last),
+                  child: CardTile(
+                    card: _graveyard.last,
+                    heroTag: 'graveyard_top',
+                  ),
                 ),
               ),
       ),
@@ -1466,25 +1804,9 @@ class _SoloPlayScreenState extends State<SoloPlayScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton.icon(
-            onPressed: _library.isNotEmpty ? () => _drawCards(1) : null,
-            icon: const Icon(Icons.add_box, size: 16),
-            label: const Text('ドロー', style: TextStyle(fontSize: 12)),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-          ElevatedButton.icon(
             onPressed: _nextPhase,
             icon: const Icon(Icons.skip_next, size: 16),
             label: Text('ターン終了', style: const TextStyle(fontSize: 12)),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: _shuffleDeck,
-            icon: const Icon(Icons.shuffle, size: 16),
-            label: const Text('シャッフル', style: TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),

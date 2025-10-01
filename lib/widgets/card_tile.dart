@@ -6,13 +6,14 @@ import 'package:senkai_sengi/utils/network_image_builder.dart';
 import '../models/card_data.dart';
 
 class CardTile extends StatelessWidget {
-  const CardTile({super.key, required this.card});
+  const CardTile({super.key, required this.card, this.heroTag});
 
   final CardData card;
+  final Object? heroTag;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    Widget cardWidget = Center(
       child: LayoutBuilder(
         builder: (context, constrains) {
           double long = max<double>(constrains.maxHeight, constrains.maxWidth);
@@ -26,5 +27,14 @@ class CardTile extends StatelessWidget {
         },
       ),
     );
+
+    if (heroTag != null) {
+      return Hero(
+        tag: heroTag!,
+        child: cardWidget,
+      );
+    }
+    
+    return cardWidget;
   }
 }
