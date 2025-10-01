@@ -140,6 +140,37 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     }
   }
 
+  void _addMagicCardToZone(
+    CardData card, {
+    bool faceUp = true,
+    bool isUpright = true,
+  }) {
+    _magicZone.add(card);
+    _magicCardRotations.add(isUpright);
+    _magicCardFaceUp.add(faceUp);
+
+    final flipController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    )..value = 1.0;
+    _flipAnimationControllers.add(flipController);
+  }
+
+  CardData _removeMagicCardFromZone(int index) {
+    final removedCard = _magicZone.removeAt(index);
+    if (_magicCardRotations.length > index) {
+      _magicCardRotations.removeAt(index);
+    }
+    if (_magicCardFaceUp.length > index) {
+      _magicCardFaceUp.removeAt(index);
+    }
+    if (_flipAnimationControllers.length > index) {
+      final controller = _flipAnimationControllers.removeAt(index);
+      controller.dispose();
+    }
+    return removedCard;
+  }
+
   void _playCard(int handIndex) {
     if (handIndex < _hand.length) {
       final card = _hand[handIndex];
@@ -329,16 +360,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     int magicCards = (_isFirstPlayer && _turnCount == 1) ? 1 : 2;
     for (int i = 0; i < magicCards && _magicDeck.isNotEmpty; i++) {
       final card = _magicDeck.removeAt(0);
-      _magicZone.add(card);
-      _magicCardRotations.add(true); // 初期状態はアップ
-      _magicCardFaceUp.add(true); // 初期状態は表向き
-
-      // フリップアニメーション用のコントローラーを追加
-      final flipController = AnimationController(
-        duration: const Duration(milliseconds: 300),
-        vsync: this,
-      );
-      _flipAnimationControllers.add(flipController);
+      _addMagicCardToZone(card);
     }
   }
 
@@ -368,8 +390,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
             TextButton(
               onPressed: () {
                 setState(() {
-                  _graveyard.add(_magicZone.removeAt(index));
-                  _magicCardRotations.removeAt(index);
+                  final removedCard = _removeMagicCardFromZone(index);
+                  _graveyard.add(removedCard);
                 });
                 Navigator.of(context).pop();
               },
@@ -378,8 +400,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
             TextButton(
               onPressed: () {
                 setState(() {
-                  _hand.add(_magicZone.removeAt(index));
-                  _magicCardRotations.removeAt(index);
+                  final removedCard = _removeMagicCardFromZone(index);
+                  _hand.add(removedCard);
                 });
                 Navigator.of(context).pop();
               },
@@ -446,128 +468,112 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   }
 
   Widget _buildStartScreen() {
-    return Stack(
-      children: [
-        // プレイマット背景
-        Center(
-          child: Image.asset(
-            'assets/images/playmat_black.png',
-            fit: BoxFit.contain,
-          ),
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.symmetric(horizontal: 32),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white24, width: 1),
         ),
-        // スタート画面コンテンツ
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            margin: const EdgeInsets.symmetric(horizontal: 32),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white24, width: 1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'デッキ: ${widget.deck.name}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'デッキ: ${widget.deck.name}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            Text(
+              'メインデッキ: ${_library.length}枚',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            Text(
+              '魔法デッキ: ${_magicDeck.length}枚',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            // 先攻・後攻選択
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white24, width: 1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const Text(
+                    '先攻・後攻を選択',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'メインデッキ: ${_library.length}枚',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                Text(
-                  '魔法デッキ: ${_magicDeck.length}枚',
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                // 先攻・後攻選択
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white24, width: 1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        '先攻・後攻を選択',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      ChoiceChip(
+                        label: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [Text('先攻')],
                         ),
+                        selected: _isFirstPlayer,
+                        onSelected: (selected) {
+                          setState(() {
+                            _isFirstPlayer = true;
+                          });
+                        },
+                        selectedColor: Colors.blue,
+                        labelStyle: TextStyle(
+                          color: _isFirstPlayer ? Colors.white : Colors.black,
+                        ),
+                        showCheckmark: false,
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ChoiceChip(
-                            label: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [Text('先攻')],
-                            ),
-                            selected: _isFirstPlayer,
-                            onSelected: (selected) {
-                              setState(() {
-                                _isFirstPlayer = true;
-                              });
-                            },
-                            selectedColor: Colors.blue,
-                            labelStyle: TextStyle(
-                              color: _isFirstPlayer
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                            showCheckmark: false,
-                          ),
-                          const SizedBox(width: 16),
-                          ChoiceChip(
-                            label: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [Text('後攻')],
-                            ),
-                            selected: !_isFirstPlayer,
-                            onSelected: (selected) {
-                              setState(() {
-                                _isFirstPlayer = false;
-                              });
-                            },
-                            selectedColor: Colors.red,
-                            labelStyle: TextStyle(
-                              color: !_isFirstPlayer
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                            showCheckmark: false,
-                          ),
-                        ],
+                      const SizedBox(width: 16),
+                      ChoiceChip(
+                        label: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [Text('後攻')],
+                        ),
+                        selected: !_isFirstPlayer,
+                        onSelected: (selected) {
+                          setState(() {
+                            _isFirstPlayer = false;
+                          });
+                        },
+                        selectedColor: Colors.red,
+                        labelStyle: TextStyle(
+                          color: !_isFirstPlayer ? Colors.white : Colors.black,
+                        ),
+                        showCheckmark: false,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: _startGame,
-                  icon: const Icon(Icons.play_arrow),
-                  label: Text('ゲーム開始（${_isFirstPlayer ? "先攻" : "後攻"}）'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _startGame,
+              icon: const Icon(Icons.play_arrow),
+              label: Text('ゲーム開始（${_isFirstPlayer ? "先攻" : "後攻"}）'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -1099,14 +1105,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                 child: const Text('表向きにする'),
               ),
           ],
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              Navigator.pop(context);
-              _moveCardToGraveyard(laneIndex, cardIndex, isMagicCard);
-            },
-            child: const Text('捨て札に送る'),
-          ),
         ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
@@ -1138,8 +1136,8 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   void _moveCardToGraveyard(int laneIndex, int cardIndex, bool isMagicCard) {
     setState(() {
       if (isMagicCard) {
-        _graveyard.add(_magicZone.removeAt(cardIndex));
-        _magicCardRotations.removeAt(cardIndex);
+        final removedCard = _removeMagicCardFromZone(cardIndex);
+        _graveyard.add(removedCard);
       } else {
         _graveyard.add(_lanes[laneIndex].removeAt(cardIndex));
         _laneCardRotations[laneIndex].removeAt(cardIndex);
@@ -1482,18 +1480,40 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     );
   }
 
+  void _showMagicDeckActionSheet() {
+    if (_magicDeck.isEmpty) {
+      return;
+    }
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('魔力デッキ'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                final card = _magicDeck.removeAt(0);
+                _addMagicCardToZone(card);
+              });
+            },
+            child: const Text('魔力ゾーンに追加する'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('キャンセル'),
+        ),
+      ),
+    );
+  }
+
   // 魔力デッキ
   Widget _buildMagicDeck(BoxConstraints playmatConstraints) {
     double cardHeight = playmatConstraints.maxWidth * 0.2;
     return GestureDetector(
-      onTap: () {
-        // 魔力デッキから1枚ドロー
-        if (_magicDeck.isNotEmpty) {
-          setState(() {
-            _hand.add(_magicDeck.removeAt(0));
-          });
-        }
-      },
+      onTap: _showMagicDeckActionSheet,
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4)),
         child: _magicDeck.isEmpty
