@@ -352,7 +352,29 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                             ),
                             ElevatedButton(
                               onPressed: () async {
-                                // 現在のデッキ状態を取得してソロプレイ画面へ遷移
+                                final mainCount = mainDeckCards.length;
+                                final magicCount = magicDeckCards.length;
+
+                                if (mainCount != 20 || magicCount != 10) {
+                                  await showCupertinoDialog<void>(
+                                    context: context,
+                                    builder: (dialogContext) => CupertinoAlertDialog(
+                                      title: const Text('ソロプレイを開始できません'),
+                                      content: Text(
+                                        'メインデッキは20枚、魔力デッキは10枚である必要があります。\n'
+                                        '現在: メイン $mainCount 枚 / 魔力 $magicCount 枚',
+                                      ),
+                                      actions: [
+                                        CupertinoDialogAction(
+                                          child: const Text('OK'),
+                                          onPressed: () => Navigator.of(dialogContext).pop(),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  return;
+                                }
+
                                 final currentDeck = await _buildCurrentDeck();
                                 if (!mounted) return;
                                 Navigator.of(context).push(
