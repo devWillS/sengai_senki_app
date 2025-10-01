@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602208895421",
+    "project_id": "sengi-pocket",
+    "storage_bucket": "sengi-pocket.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602208895421:android:4f2989bfeb51eb0a4552d4",
+        "android_client_info": {
+          "package_name": "jp.devwill.sengiPocket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD34uDVvsoSvqBp6T-ed_xQRhpCg7MBUSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

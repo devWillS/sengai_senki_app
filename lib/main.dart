@@ -1,3 +1,5 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -5,13 +7,23 @@ import 'package:senkai_sengi/repositories/card_repository.dart';
 import 'package:senkai_sengi/repositories/hive_deck_repository.dart';
 import 'package:senkai_sengi/utils/master.dart';
 
+import 'firebase_options.dart';
 import 'models/deck_model.dart';
 import 'models/deck_sort_type.dart';
 import 'models/deck_type.dart';
 import 'screens/home_screen.dart';
 
+final firebaseAnalyticsProvider = Provider<FirebaseAnalytics>(
+  (ref) => throw UnimplementedError(),
+);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
+  await analytics.logAppOpen();
 
   await Hive.initFlutter();
 
@@ -26,15 +38,22 @@ void main() async {
   Master().rarityList = ["N", "R", "SR", "LR"];
   Master().costList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   Master().abilityList = [];
-  
+
   // 初回起動時にプリセットデッキをインポート
   await HiveDeckRepository.instance.importPresetDecksOnFirstLaunch();
 
-  runApp(const ProviderScope(child: SenkaiSengiApp()));
+  runApp(
+    ProviderScope(
+      overrides: [firebaseAnalyticsProvider.overrideWithValue(analytics)],
+      child: SenkaiSengiApp(analytics: analytics),
+    ),
+  );
 }
 
 class SenkaiSengiApp extends StatelessWidget {
-  const SenkaiSengiApp({super.key});
+  const SenkaiSengiApp({super.key, required this.analytics});
+
+  final FirebaseAnalytics analytics;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +64,7 @@ class SenkaiSengiApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB33333)),
         useMaterial3: true,
       ),
+      navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
       home: const HomeScreen(),
     );
   }
