@@ -459,48 +459,58 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SafeArea(
-      top: false,
-      child: Scaffold(
-        backgroundColor: const Color(0xFF3E3E3E),
-        appBar: CupertinoNavigationBar(
-          backgroundColor: theme.colorScheme.primary,
-          leading: CupertinoNavigationBarBackButton(
-            color: Colors.white,
-            onPressed: () => Navigator.of(context).pop(),
+    return WillPopScope(
+      onWillPop: _confirmBackNavigation,
+      child: SafeArea(
+        top: false,
+        child: Scaffold(
+          backgroundColor: const Color(0xFF3E3E3E),
+          appBar: CupertinoNavigationBar(
+            backgroundColor: theme.colorScheme.primary,
+            leading: CupertinoNavigationBarBackButton(
+              color: Colors.white,
+              onPressed: () async {
+                final shouldPop =
+                    !_isGameStarted || await _confirmBackNavigation();
+                if (!mounted) return;
+                if (shouldPop) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            middle: Text(
+              'ソロプレイ',
+              style: const TextStyle(color: Colors.white, fontSize: 20),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: () {
+                showCupertinoDialog(
+                  context: context,
+                  builder: (context) => CupertinoAlertDialog(
+                    title: const Text('ゲームをリセット'),
+                    content: const Text('新しいゲームを開始しますか？'),
+                    actions: [
+                      CupertinoDialogAction(
+                        isDestructiveAction: true,
+                        child: const Text('リセット'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _resetGame();
+                        },
+                      ),
+                      CupertinoDialogAction(
+                        child: const Text('キャンセル'),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-          middle: Text(
-            'ソロプレイ - ${widget.deck.name}',
-            style: const TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () {
-              showCupertinoDialog(
-                context: context,
-                builder: (context) => CupertinoAlertDialog(
-                  title: const Text('ゲームをリセット'),
-                  content: const Text('新しいゲームを開始しますか？'),
-                  actions: [
-                    CupertinoDialogAction(
-                      child: const Text('キャンセル'),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    CupertinoDialogAction(
-                      isDestructiveAction: true,
-                      child: const Text('リセット'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _resetGame();
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          body: _isGameStarted ? _buildGameArea() : _buildStartScreen(),
         ),
-        body: _isGameStarted ? _buildGameArea() : _buildStartScreen(),
       ),
     );
   }
@@ -1556,7 +1566,11 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         title: const Text('魔力デッキ'),
-        message: Text("残り${_magicDeck.length}枚"),
+        message: Text(
+          _isMagicDeckTopCardFaceUp
+              ? '一番上: ${topCard.name}（表向き）'
+              : '一番上: ${topCard.name}（裏向き）',
+        ),
         actions: [
           CupertinoActionSheetAction(
             onPressed: () async {
@@ -1949,7 +1963,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton.icon(
-            onPressed: _nextPhase,
+            onPressed: _showEndTurnDialog,
             icon: const Icon(Icons.skip_next, size: 16),
             label: Text('ターン終了', style: const TextStyle(fontSize: 12)),
             style: ElevatedButton.styleFrom(
@@ -1959,5 +1973,59 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
         ],
       ),
     );
+  }
+
+  void _showEndTurnDialog() {
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('ターン終了'),
+        content: Column(
+          children: [
+            const SizedBox(height: 8),
+            Text(
+              _isFirstPlayer ? '自分のターンを終了します。よろしいですか？' : '相手のターンへ移ります。よろしいですか？',
+            ),
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.of(context).pop();
+              _nextPhase();
+            },
+            child: const Text('ターン終了'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _confirmBackNavigation() async {
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('確認'),
+        content: const Text('現在のソロプレイを終了して前の画面に戻ります。よろしいですか？'),
+        actions: [
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('戻る'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
   }
 }
