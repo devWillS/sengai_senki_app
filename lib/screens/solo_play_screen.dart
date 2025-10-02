@@ -395,8 +395,16 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return WillPopScope(
-      onWillPop: _confirmBackNavigation,
+    return PopScope(
+      canPop: !_isGameStarted,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        final shouldPop = await _confirmBackNavigation();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: SafeArea(
         top: false,
         child: Scaffold(
