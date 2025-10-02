@@ -105,7 +105,12 @@ class _CardListScreenState extends State<CardListScreen> {
                 padding: EdgeInsets.all(20),
                 child: Hero(
                   tag: index,
-                  child: HoloCard(card: card),
+                  child: HoloCard(
+                    card: card,
+                    showGlitter: card.rarity == "LR",
+                    showGloss: card.rarity == "SR" || card.rarity == "LR",
+                    showRainbow: card.rarity == "SR" || card.rarity == "LR",
+                  ),
                 ),
               ),
             ),

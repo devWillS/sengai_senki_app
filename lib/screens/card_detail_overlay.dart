@@ -111,9 +111,13 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
                                           tag: heroTag ?? index,
                                           child: HoloCard(
                                             card: card,
-                                            // showRainbow: card.isKira ?? false,
-                                            // showGloss: card.isKira ?? false,
-                                            // showGlitter: card.isKira ?? false,
+                                            showGlitter: card.rarity == "LR",
+                                            showGloss:
+                                                card.rarity == "SR" ||
+                                                card.rarity == "LR",
+                                            showRainbow:
+                                                card.rarity == "SR" ||
+                                                card.rarity == "LR",
                                           ),
                                         ),
                                       ),
