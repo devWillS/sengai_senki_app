@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:senkai_sengi/screens/faq_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class InfoPortalScreen extends StatelessWidget {
@@ -84,6 +85,20 @@ class InfoPortalScreen extends StatelessWidget {
                     subtitle: '@senkaisengi',
                     onTap: () => _launchUrl('https://x.com/senkaisengi'),
                     color: Colors.black87,
+                  ),
+                  const SizedBox(height: 12),
+                  _LinkTile(
+                    icon: Icons.help_outline,
+                    title: 'よくある質問',
+                    subtitle: 'ルール・カードに関する質問',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const FaqScreen(),
+                        ),
+                      );
+                    },
+                    color: Colors.orange[700]!,
                   ),
                 ],
               ),
