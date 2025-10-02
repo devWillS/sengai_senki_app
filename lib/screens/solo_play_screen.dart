@@ -22,7 +22,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
   // ゲームエリア
   List<CardData> _library = [];
   List<CardData> _hand = [];
-  List<CardData> _field = [];
   List<CardData> _graveyard = [];
   List<CardData> _magicDeck = [];
   List<CardData> _wallZone = []; // ウォールゾーンのカード
@@ -99,7 +98,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
       _library = mainDeck;
       _magicDeck = magicDeck;
       _hand = [];
-      _field = [];
       _graveyard = [];
       _wallZone = [];
       _magicZone = [];
@@ -337,23 +335,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     }
   }
 
-  void _moveFieldToGraveyard(int fieldIndex) {
-    if (fieldIndex < _field.length) {
-      setState(() {
-        final card = _field.removeAt(fieldIndex);
-        _graveyard.add(card);
-      });
-    }
-  }
-
-  void _reshuffleGraveyard() {
-    setState(() {
-      _library.addAll(_graveyard);
-      _graveyard.clear();
-      _shuffleDeck();
-    });
-  }
-
   // フェーズ処理
   void _nextPhase() {
     setState(() {
@@ -404,51 +385,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
 
   void _endPhase() {
     // エンドフェーズの処理（必要に応じて）
-  }
-
-  void _useMagicCard(int index) {
-    if (index < _magicZone.length) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('魔力カード使用'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('カード: ${_magicZone[index].name}'),
-              const SizedBox(height: 8),
-              const Text('どうしますか？'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  final removedCard = _removeMagicCardFromZone(index);
-                  _graveyard.add(removedCard);
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('捨て札に送る'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  final removedCard = _removeMagicCardFromZone(index);
-                  _hand.add(removedCard);
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('手札に戻す'),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   void _resetGame() {
@@ -1284,75 +1220,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
     _magicDeckFlipController.reset();
   }
 
-  // レーンの詳細を表示
-  void _showLaneDetail(int laneIndex) {
-    if (_lanes[laneIndex].isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black87,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${_getLaneName(laneIndex)}の詳細',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // 怪魔カード
-              if (_lanes[laneIndex].isNotEmpty) ...[
-                const Text(
-                  '怪魔カード:',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 150,
-                  child: CardTile(card: _lanes[laneIndex][0]),
-                ),
-              ],
-              // 付与カード
-              if (_lanes[laneIndex].length > 1) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  '付与カード:',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _lanes[laneIndex].length - 1,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        width: 70,
-                        margin: const EdgeInsets.only(right: 4),
-                        child: CardTile(card: _lanes[laneIndex][index + 1]),
-                      );
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('閉じる'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // ウォールゾーン - 重なり表示
   Widget _buildWallZone(BoxConstraints playmatConstraints) {
     return _wallZone.isEmpty
@@ -1881,47 +1748,6 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           child: CardTile(card: card, heroTag: 'hand_$index'),
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 旧魔力ゾーン（使用しない）
-  Widget _buildMagicZone() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      child: Column(
-        children: [
-          const Text(
-            '魔力ゾーン（手札）',
-            style: TextStyle(color: Colors.white54, fontSize: 10),
-          ),
-          Expanded(
-            child: _hand.isEmpty
-                ? const Center(
-                    child: Text(
-                      'カードがありません',
-                      style: TextStyle(color: Colors.white24, fontSize: 12),
-                    ),
-                  )
-                : GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 5,
-                          childAspectRatio: 670 / 950,
-                          crossAxisSpacing: 2,
-                          mainAxisSpacing: 2,
-                        ),
-                    itemCount: _hand.length,
-                    itemBuilder: (context, index) {
-                      final card = _hand[index];
-                      return GestureDetector(
-                        onTap: () => _playCard(index),
-                        child: CardTile(card: card),
                       );
                     },
                   ),

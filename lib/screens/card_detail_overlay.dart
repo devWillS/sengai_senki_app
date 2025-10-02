@@ -31,10 +31,6 @@ class _CardDetailOverlayState extends State<CardDetailOverlay>
     vsync: this,
     duration: const Duration(milliseconds: 250),
   );
-  late final Animation<double> _fadeAnimation = CurvedAnimation(
-    parent: _animationController,
-    curve: Curves.easeOut,
-  );
 
   late Animation<Offset> animation;
 

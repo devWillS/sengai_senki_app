@@ -179,10 +179,6 @@ class _DeckSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final updatedAt = deck.updatedAt;
-    final updatedLabel = updatedAt == null
-        ? '-'
-        : '${updatedAt.month}/${updatedAt.day}';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
