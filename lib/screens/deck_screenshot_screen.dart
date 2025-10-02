@@ -212,8 +212,10 @@ class _DeckWidgetLandState extends ConsumerState<DeckScreenshotScreen>
       if (image != null) {
         final file = File(imagePath);
         await file.writeAsBytes(image);
-        if (!mounted) return;
+        if (!context.mounted) return;
+        // ignore: use_build_context_synchronously
         Navigator.of(context).pop();
+        if (!context.mounted) return;
         showCompleteDialog();
       }
     } else if (status.isPermanentlyDenied) {
@@ -843,7 +845,9 @@ class _DeckWidgetLandState extends ConsumerState<DeckScreenshotScreen>
     );
 
     if (!context.mounted) return;
+    // ignore: use_build_context_synchronously
     Navigator.of(context).pop();
+    if (!context.mounted) return;
     if (result.status == ShareResultStatus.success) {
       showCompleteDialog();
     }

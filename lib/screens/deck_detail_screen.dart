@@ -109,6 +109,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                 onTap: () async {
                   // デッキ編集画面に現在の状態を渡す（プロバイダの状態から現在のデッキを構築）
                   final currentDeck = await _buildCurrentDeck();
+                  if (!context.mounted) return;
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => DeckEditScreen(
@@ -233,7 +234,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
 
                                 if (shouldDelete == true) {
                                   final success = await viewModel.deleteDeck();
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
 
                                   if (success) {
                                     showDialog(
@@ -314,7 +315,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
 
                                 if (shouldCopy == true) {
                                   final copiedDeck = await viewModel.copyDeck();
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
 
                                   if (copiedDeck != null) {
                                     showDialog(
@@ -376,7 +377,7 @@ class _DeckDetailScreenState extends ConsumerState<DeckDetailScreen> {
                                 }
 
                                 final currentDeck = await _buildCurrentDeck();
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) => SoloPlayScreen(

@@ -408,7 +408,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
               onPressed: () async {
                 final shouldPop =
                     !_isGameStarted || await _confirmBackNavigation();
-                if (!mounted) return;
+                if (!context.mounted) return;
                 if (shouldPop) {
                   Navigator.of(context).pop();
                 }
