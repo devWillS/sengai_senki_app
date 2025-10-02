@@ -100,13 +100,13 @@ class _FaqScreenState extends State<FaqScreen> {
                       Icon(
                         Icons.error_outline,
                         size: 64,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha:0.7),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         _errorMessage!,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha:0.9),
                           fontSize: 16,
                         ),
                         textAlign: TextAlign.center,
@@ -130,7 +130,7 @@ class _FaqScreenState extends State<FaqScreen> {
                 tabBar: CupertinoTabBar(
                   backgroundColor: theme.colorScheme.primary,
                   activeColor: Colors.white,
-                  inactiveColor: Colors.white.withOpacity(0.6),
+                  inactiveColor: Colors.white.withValues(alpha:0.6),
                   items: const [
                     BottomNavigationBarItem(
                       icon: Icon(Icons.rule),
@@ -167,7 +167,7 @@ class _FaqScreenState extends State<FaqScreen> {
           child: Text(
             'FAQはまだありません',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha:0.7),
               fontSize: 16,
             ),
           ),
@@ -202,9 +202,9 @@ class _FaqCardState extends State<_FaqCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha:0.2), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -227,10 +227,10 @@ class _FaqCardState extends State<_FaqCard> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue[700]?.withOpacity(0.3),
+                      color: Colors.blue[700]?.withValues(alpha:0.3),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: Colors.blue[400]!.withOpacity(0.5),
+                        color: Colors.blue[400]!.withValues(alpha:0.5),
                         width: 1,
                       ),
                     ),
@@ -267,7 +267,7 @@ class _FaqCardState extends State<_FaqCard> {
                       _isExpanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha:0.7),
                     ),
                   ],
                 ),
@@ -276,7 +276,7 @@ class _FaqCardState extends State<_FaqCard> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -295,7 +295,7 @@ class _FaqCardState extends State<_FaqCard> {
                               child: Text(
                                 widget.item.answer,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha:0.9),
                                   fontSize: 14,
                                   height: 1.5,
                                 ),
@@ -311,13 +311,13 @@ class _FaqCardState extends State<_FaqCard> {
                               Icon(
                                 Icons.update,
                                 size: 14,
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withValues(alpha:0.5),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '更新: ${widget.item.updated}',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha:0.5),
                                   fontSize: 12,
                                 ),
                               ),

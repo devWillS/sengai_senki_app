@@ -38,7 +38,7 @@ class InfoPortalScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     theme.colorScheme.primary,
-                    theme.colorScheme.primary.withOpacity(0.8),
+                    theme.colorScheme.primary.withValues(alpha:0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -46,7 +46,7 @@ class InfoPortalScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha:0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -119,7 +119,7 @@ class InfoPortalScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha:0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -160,10 +160,10 @@ class InfoPortalScreen extends StatelessWidget {
             // その他の情報
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha:0.2),
                   width: 1,
                 ),
               ),
@@ -172,14 +172,14 @@ class InfoPortalScreen extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha:0.7),
                     size: 48,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'アプリバージョン',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha:0.7),
                       fontSize: 14,
                     ),
                   ),
@@ -237,7 +237,7 @@ class _LinkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withValues(alpha:0.9),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -249,7 +249,7 @@ class _LinkTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: imagePath != null

@@ -106,7 +106,7 @@ class _DeckWidgetLandState extends ConsumerState<DeckScreenshotScreen>
                         height: 10,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(
+                          color: Colors.white.withValues(alpha:
                             ref.watch(currentIndex) == i ? 1 : 0.1,
                           ),
                         ),
@@ -165,7 +165,7 @@ class _DeckWidgetLandState extends ConsumerState<DeckScreenshotScreen>
       context: context,
       barrierDismissible: false,
       transitionDuration: const Duration(milliseconds: 250),
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha:0.5),
       // 画面マスクの透明度
       pageBuilder:
           (

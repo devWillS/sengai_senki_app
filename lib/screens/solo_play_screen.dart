@@ -457,7 +457,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
         padding: const EdgeInsets.all(24),
         margin: const EdgeInsets.symmetric(horizontal: 32),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha:0.7),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white24, width: 1),
         ),
@@ -755,7 +755,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                   decoration: BoxDecoration(
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha:0.3),
                         blurRadius: 2,
                         offset: const Offset(0, 1),
                       ),
@@ -794,7 +794,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                   decoration: BoxDecoration(
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
+                        color: Colors.black.withValues(alpha:0.4),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -1307,7 +1307,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
               Container(
                 height: 400,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.red.withOpacity(0.5)),
+                  border: Border.all(color: Colors.red.withValues(alpha:0.5)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: _graveyard.isEmpty
@@ -1672,7 +1672,7 @@ class _SoloPlayScreenState extends State<SoloPlayScreen>
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(2),
                                     border: Border.all(
-                                      color: Colors.purple.withOpacity(0.5),
+                                      color: Colors.purple.withValues(alpha:0.5),
                                       width: 0.5,
                                     ),
                                   ),

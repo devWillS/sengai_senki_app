@@ -79,11 +79,11 @@ class _HoloCardState extends State<HoloCard> {
               0.2 - (_rotationX / angle),
             ),
             colors: [
-              Colors.white.withOpacity(0.0),
-              Colors.white.withOpacity(
+              Colors.white.withValues(alpha:0.0),
+              Colors.white.withValues(alpha:
                 ((_rotationY.abs() + _rotationX.abs()) / 70) * 0.7,
               ),
-              Colors.white.withOpacity(0.0),
+              Colors.white.withValues(alpha:0.0),
             ],
             stops: const [0.2, 0.5, 0.8],
           ),
@@ -107,14 +107,14 @@ class _HoloCardState extends State<HoloCard> {
               1.0 - (_rotationX / angle),
             ),
             colors: [
-              Colors.white.withOpacity(0.0),
-              Colors.white.withOpacity(
+              Colors.white.withValues(alpha:0.0),
+              Colors.white.withValues(alpha:
                 ((_rotationY.abs() + _rotationX.abs()) / 70) * 0.3,
               ),
-              Colors.white.withOpacity(
+              Colors.white.withValues(alpha:
                 ((_rotationY.abs() + _rotationX.abs()) / 70) * 0.6,
               ),
-              Colors.white.withOpacity(0.0),
+              Colors.white.withValues(alpha:0.0),
             ],
             stops: const [0.0, 0.3, 0.5, 1.0],
           ),
@@ -127,7 +127,7 @@ class _HoloCardState extends State<HoloCard> {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
-          color: Colors.white.withOpacity(
+          color: Colors.white.withValues(alpha:
             ((_rotationY.abs() + _rotationX.abs()) / 70) * 0.5,
           ),
           width: 1,
@@ -137,8 +137,8 @@ class _HoloCardState extends State<HoloCard> {
           center: Alignment((_rotationY / 35), (_rotationX / 35)),
           focal: Alignment((_rotationY / 70), (_rotationX / 70)),
           colors: [
-            Colors.white.withOpacity(0.0),
-            Colors.white.withOpacity(
+            Colors.white.withValues(alpha:0.0),
+            Colors.white.withValues(alpha:
               ((_rotationY.abs() + _rotationX.abs()) / 70) * 0.2,
             ),
           ],
@@ -156,9 +156,9 @@ class _HoloCardState extends State<HoloCard> {
         child: ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [
-              Colors.white.withOpacity(0.0),
-              Colors.white.withOpacity(0.2),
-              Colors.white.withOpacity(0.0),
+              Colors.white.withValues(alpha:0.0),
+              Colors.white.withValues(alpha:0.2),
+              Colors.white.withValues(alpha:0.0),
             ],
             stops: const [0.0, 0.5, 1.0],
             begin: Alignment(
@@ -172,7 +172,7 @@ class _HoloCardState extends State<HoloCard> {
             shaderCallback: (bounds) => LinearGradient(
               colors: [
                 Colors.transparent,
-                Colors.white.withOpacity(0.1),
+                Colors.white.withValues(alpha:0.1),
                 Colors.transparent,
               ],
               stops: const [0.0, 0.5, 1.0],
@@ -196,9 +196,9 @@ class _HoloCardState extends State<HoloCard> {
       child: ShaderMask(
         shaderCallback: (bounds) => LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.0),
-            Colors.white.withOpacity(0.7),
-            Colors.white.withOpacity(0.0),
+            Colors.white.withValues(alpha:0.0),
+            Colors.white.withValues(alpha:0.7),
+            Colors.white.withValues(alpha:0.0),
           ],
           stops: const [0.0, 0.5, 1.0],
           begin: Alignment(
@@ -212,7 +212,7 @@ class _HoloCardState extends State<HoloCard> {
           shaderCallback: (bounds) => LinearGradient(
             colors: [
               Colors.transparent,
-              Colors.white.withOpacity(0.5),
+              Colors.white.withValues(alpha:0.5),
               Colors.transparent,
             ],
             stops: const [0.0, 0.5, 1.0],
@@ -223,7 +223,7 @@ class _HoloCardState extends State<HoloCard> {
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha:0.7),
             colorBlendMode: BlendMode.hardLight,
           ),
         ),
@@ -239,22 +239,22 @@ class _HoloCardState extends State<HoloCard> {
           colors: [
             const Color(
               0xFFff0084,
-            ).withOpacity(0.35 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
+            ).withValues(alpha:0.35 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
             const Color(
               0xFFfca400,
-            ).withOpacity(0.3 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
+            ).withValues(alpha:0.3 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
             const Color(
               0xFFffff00,
-            ).withOpacity(0.25 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
+            ).withValues(alpha:0.25 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
             const Color(
               0xFF00ff8a,
-            ).withOpacity(0.25 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
+            ).withValues(alpha:0.25 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
             const Color(
               0xFF00cfff,
-            ).withOpacity(0.3 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
+            ).withValues(alpha:0.3 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
             const Color(
               0xFFcc4cfa,
-            ).withOpacity(0.35 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
+            ).withValues(alpha:0.35 * ((_rotationY.abs() + _rotationX.abs()) / 70)),
           ],
           begin: Alignment(
             -1.2 + (_rotationY / angle),
@@ -271,7 +271,7 @@ class _HoloCardState extends State<HoloCard> {
             gradient: RadialGradient(
               center: Alignment((_rotationY / angle), (_rotationX / angle)),
               focal: Alignment((_rotationY / 70), (_rotationX / 70)),
-              colors: [Colors.white.withOpacity(0.4), Colors.transparent],
+              colors: [Colors.white.withValues(alpha:0.4), Colors.transparent],
               stops: const [0.0, 0.9],
             ),
           ),
@@ -310,7 +310,7 @@ class _HoloCardState extends State<HoloCard> {
                     boxShadow: widget.showShadow
                         ? [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha:0.2),
                               blurRadius: 30,
                               spreadRadius: -5,
                               offset: const Offset(0, 0),
@@ -320,25 +320,25 @@ class _HoloCardState extends State<HoloCard> {
                                 const Color(0xFFfac),
                                 const Color(0xFFddccaa),
                                 0.5,
-                              )!.withOpacity(0.3),
+                              )!.withValues(alpha:0.3),
                               blurRadius: 45,
                               spreadRadius: -8,
                               offset: const Offset(0, 0),
                             ),
                             BoxShadow(
-                              color: const Color(0xFFfac).withOpacity(0.4),
+                              color: const Color(0xFFfac).withValues(alpha:0.4),
                               blurRadius: 30,
                               spreadRadius: -5,
                               offset: const Offset(-15, -15),
                             ),
                             BoxShadow(
-                              color: const Color(0xFFddccaa).withOpacity(0.4),
+                              color: const Color(0xFFddccaa).withValues(alpha:0.4),
                               blurRadius: 30,
                               spreadRadius: -5,
                               offset: const Offset(15, 15),
                             ),
                             BoxShadow(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha:0.2),
                               blurRadius: 60,
                               spreadRadius: -10,
                               offset: const Offset(0, 0),
