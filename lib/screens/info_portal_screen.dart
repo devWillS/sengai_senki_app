@@ -21,6 +21,20 @@ class InfoPortalScreen extends ConsumerWidget {
   Future<void> _handleLogin(BuildContext context, WidgetRef ref,
       {String prompt = 'login'}) async {
     final messenger = ScaffoldMessenger.of(context);
+    // このビルドで Will ID 用 dart-define が埋まっているか事前確認する。
+    // 空のままログイン画面を開くと SDK が ArgumentError を投げて WebView が
+    // 起動しない (いわゆる "ブラウザが開かない" 症状の原因)。
+    if (!AuthViewModel.isWillIdAvailable) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'このビルドには Will ID の設定が含まれていません。最新版に更新してから再度お試しください。',
+          ),
+        ),
+      );
+      return;
+    }
+
     final result = await Navigator.of(context).push<WillIdAuthResult>(
       MaterialPageRoute(
         builder: (_) => WillIdLoginScreen(prompt: prompt),
@@ -28,12 +42,36 @@ class InfoPortalScreen extends ConsumerWidget {
       ),
     );
     if (result == null) return;
-    final success =
-        await ref.read(authSessionProvider.notifier).loginWithWillIdResult(result);
-    messenger.showSnackBar(
-      SnackBar(
-        content:
-            Text(success ? 'tcg_verse と連携しました。デッキを同期しました。' : 'ログインに失敗しました。'),
+    final loginResult = await ref
+        .read(authSessionProvider.notifier)
+        .loginWithWillIdResult(result);
+    if (loginResult.success) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('TCG Verse と連携しました。デッキを同期しました。'),
+        ),
+      );
+      return;
+    }
+    // 失敗時は原因をダイアログで出す (SnackBar だと長いメッセージが切れるため)
+    if (!context.mounted) return;
+    showDialog<void>(
+      context: context,
+      // dialogContext は showDialog がダイアログ用に push した Route の context。
+      // 外側の `context` を使って pop すると CupertinoTabView の Navigator を
+      // 巻き込み、ダイアログが閉じない / 下位画面を壊すことがあるため必ず
+      // dialogContext 経由で pop する。
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ログインに失敗しました'),
+        content: SingleChildScrollView(
+          child: Text(loginResult.errorMessage ?? '不明なエラーが発生しました。'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('閉じる'),
+          ),
+        ],
       ),
     );
   }
@@ -403,7 +441,7 @@ class _TcgVerseMigrationCard extends StatelessWidget {
               Icon(Icons.swap_horiz, color: Colors.white, size: 24),
               SizedBox(width: 8),
               Text(
-                'tcg_verse 連携',
+                'TCG Verse 連携',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -415,8 +453,8 @@ class _TcgVerseMigrationCard extends StatelessWidget {
           const SizedBox(height: 12),
           const Text(
             '千戯ポケットのデッキ管理機能は、マルチTCG対応アプリ '
-            '「tcg_verse」 に統合されます。\n'
-            'Will ID でログインするとこのアプリのデッキが tcg_verse に同期され、'
+            '「TCG Verse」 に統合されます。\n'
+            'Will ID でログインするとこのアプリのデッキが TCG Verse に同期され、'
             'どちらのアプリでも同じデッキが使えます。',
             style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
           ),
@@ -478,7 +516,7 @@ class _TcgVerseMigrationCard extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onDownload,
                 icon: const Icon(Icons.open_in_new, color: Colors.white),
-                label: const Text('tcg_verse について',
+                label: const Text('TCG Verse について',
                     style: TextStyle(color: Colors.white)),
               ),
             ),

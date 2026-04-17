@@ -88,8 +88,8 @@ class ApiService {
   // --------------------------------------------------------------
 
   /// Will ID WebView で取得した認可コードを使って tcg_verse backend にログインする。
-  /// 成功時は AuthSession を返し、失敗時は null を返す。
-  Future<AuthSession?> loginWithWillId(WillIdAuthResult result) async {
+  /// 成功時は AuthSession を返し、失敗時は例外を投げる (UI 側で詳細メッセージ表示)。
+  Future<AuthSession> loginWithWillId(WillIdAuthResult result) async {
     final config = WillIdConfig.fromEnvironment();
     final client = BackendAuthClient(
       config: config,
@@ -108,8 +108,14 @@ class ApiService {
       await AuthStorage.instance.save(session);
       return session;
     } on AuthException catch (e) {
-      debugPrint('loginWithWillId failed: $e');
-      return null;
+      // Will ID SDK が返す既知の例外 (トークン交換失敗、backend が 4xx 返した等)。
+      // UI 側で表示できるよう、原因メッセージ付きで throw し直す。
+      debugPrint('loginWithWillId AuthException: $e');
+      throw Exception(e.toString());
+    } catch (e, st) {
+      // DioException や未知のエラーを含む。
+      debugPrint('loginWithWillId unexpected: $e\n$st');
+      rethrow;
     }
   }
 
