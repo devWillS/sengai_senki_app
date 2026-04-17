@@ -26,13 +26,15 @@ class DeckModelAdapter extends TypeAdapter<DeckModel> {
       groupCardColor: fields[5] == null ? false : fields[5] as bool,
       deckType: fields[6] == null ? DeckType.normal : fields[6] as DeckType,
       updatedAt: fields[7] as DateTime?,
+      serverId: fields[8] as String?,
+      createdAt: fields[9] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, DeckModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -48,7 +50,11 @@ class DeckModelAdapter extends TypeAdapter<DeckModel> {
       ..writeByte(6)
       ..write(obj.deckType)
       ..writeByte(7)
-      ..write(obj.updatedAt);
+      ..write(obj.updatedAt)
+      ..writeByte(8)
+      ..write(obj.serverId)
+      ..writeByte(9)
+      ..write(obj.createdAt);
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -10,6 +11,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:senkai_sengi/repositories/card_repository.dart';
 import 'package:senkai_sengi/repositories/hive_deck_repository.dart';
+import 'package:senkai_sengi/services/api_service.dart';
+import 'package:senkai_sengi/services/deck_sync_service.dart';
 import 'package:senkai_sengi/utils/master.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -51,6 +54,12 @@ void main() async {
 
   // 初回起動時にプリセットデッキをインポート
   await HiveDeckRepository.instance.importPresetDecksOnFirstLaunch();
+
+  // tcg_verse backend とのやり取りに使う ApiService 初期化 (X-App-Version ヘッダ用)
+  await ApiService.initAppVersion();
+
+  // ログイン済みなら、起動時に一度だけサーバーデッキと同期する (失敗しても続行)
+  unawaited(DeckSyncService.instance.refreshFromRemote().catchError((_) {}));
 
   runApp(
     ProviderScope(

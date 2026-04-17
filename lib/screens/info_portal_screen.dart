@@ -1,10 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:senkai_sengi/screens/faq_screen.dart';
+import 'package:senkai_sengi/screens/will_id_login_screen.dart';
+import 'package:senkai_sengi/view_models/auth_view_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:will_id_sdk/will_id_sdk.dart';
 
-class InfoPortalScreen extends StatelessWidget {
+class InfoPortalScreen extends ConsumerWidget {
   const InfoPortalScreen({super.key});
 
   Future<void> _launchUrl(String url) async {
@@ -14,9 +18,56 @@ class InfoPortalScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _handleLogin(BuildContext context, WidgetRef ref,
+      {String prompt = 'login'}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await Navigator.of(context).push<WillIdAuthResult>(
+      MaterialPageRoute(
+        builder: (_) => WillIdLoginScreen(prompt: prompt),
+        fullscreenDialog: true,
+      ),
+    );
+    if (result == null) return;
+    final success =
+        await ref.read(authSessionProvider.notifier).loginWithWillIdResult(result);
+    messenger.showSnackBar(
+      SnackBar(
+        content:
+            Text(success ? 'tcg_verse と連携しました。デッキを同期しました。' : 'ログインに失敗しました。'),
+      ),
+    );
+  }
+
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ログアウトしますか?'),
+        content: const Text('ローカルのデッキはこのまま残ります。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('ログアウト'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(authSessionProvider.notifier).logout();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ログアウトしました。')),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final session = ref.watch(authSessionProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -32,6 +83,20 @@ class InfoPortalScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // tcg_verse 移行案内セクション (ログイン前 / 後で表示を切替)
+            _TcgVerseMigrationCard(
+              session: session,
+              theme: theme,
+              onLogin: () => _handleLogin(context, ref),
+              onLogout: () => _handleLogout(context, ref),
+              onDownload: () {
+                // tcg_verse アプリのストアリンク。
+                // TODO: 本番 tcg_verse のストア URL が決まったら差し替える
+                _launchUrl('https://tcg-verse-app.com/');
+              },
+            ),
+            const SizedBox(height: 20),
+
             // 公式リンクセクション
             Container(
               decoration: BoxDecoration(
@@ -286,6 +351,139 @@ class _LinkTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// tcg_verse への移行案内 + Will ID ログイン/ログアウトをまとめたカード。
+///
+/// 未ログイン時は「デッキを tcg_verse アプリと共有できます」訴求、
+/// ログイン時は「連携中」情報とログアウトボタンを表示する。
+class _TcgVerseMigrationCard extends StatelessWidget {
+  const _TcgVerseMigrationCard({
+    required this.session,
+    required this.theme,
+    required this.onLogin,
+    required this.onLogout,
+    required this.onDownload,
+  });
+
+  final dynamic session; // AuthSession? だが import を増やさないため dynamic
+  final ThemeData theme;
+  final VoidCallback onLogin;
+  final VoidCallback onLogout;
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoggedIn = session != null;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1F6FEB), Color(0xFF2EA043)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.swap_horiz, color: Colors.white, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'tcg_verse 連携',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '千戯ポケットのデッキ管理機能は、マルチTCG対応アプリ '
+            '「tcg_verse」 に統合されます。\n'
+            'Will ID でログインするとこのアプリのデッキが tcg_verse に同期され、'
+            'どちらのアプリでも同じデッキが使えます。',
+            style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          if (isLoggedIn) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle,
+                      color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${session.user.displayName} として連携中',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onLogout,
+                icon: const Icon(Icons.logout, color: Colors.white),
+                label: const Text('ログアウト',
+                    style: TextStyle(color: Colors.white)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white70),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onLogin,
+                icon: const Icon(Icons.login),
+                label: const Text('Will ID でログインして連携する'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF1F6FEB),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: onDownload,
+                icon: const Icon(Icons.open_in_new, color: Colors.white),
+                label: const Text('tcg_verse について',
+                    style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
