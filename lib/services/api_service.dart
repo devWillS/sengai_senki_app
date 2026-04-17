@@ -137,6 +137,10 @@ class ApiService {
 
   /// サーバーからこのユーザーの senkai デッキ一覧を取得する。
   /// 未ログインの場合は空配列を返す。
+  ///
+  /// tcg_verse backend は Laravel LengthAwarePaginator を返すため、
+  /// デッキ配列は `'data'` キーに格納される。古い実装の `'list'` や
+  /// 素の配列 (`[...]`) にもフォールバックで対応する。
   Future<List<Map<String, dynamic>>> getDecks({int page = 1}) async {
     try {
       final response = await _dio.get(
@@ -147,15 +151,11 @@ class ApiService {
         },
       );
       final data = response.data;
-      if (data is Map) {
-        final list = data['list'];
-        if (list is List) {
-          return list
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
-        }
-      }
+      final rawList = _extractList(data);
+      return rawList
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
     } catch (e) {
       debugPrint('getDecks failed: $e');
     }
@@ -164,17 +164,14 @@ class ApiService {
 
   /// デッキを新規作成する。
   /// payload は `{ name, card_num_list, meta? }` 形式。
-  /// 成功時はサーバーが生成した `id` (String) を含む Map を返す。
+  /// 成功時はサーバーが生成した `id` を含む Map を返す。
   Future<Map<String, dynamic>?> createDeck({
     required Map<String, dynamic> payload,
   }) async {
     try {
       final body = {...payload, 'game_slug': _gameSlug};
       final response = await _dio.post('${apiUrl}decks', data: body);
-      final data = response.data;
-      if (data is Map) {
-        return Map<String, dynamic>.from(data);
-      }
+      return _extractResource(response.data);
     } catch (e) {
       debugPrint('createDeck failed: $e');
     }
@@ -189,14 +186,39 @@ class ApiService {
     try {
       final body = {...payload, 'game_slug': _gameSlug};
       final response = await _dio.put('${apiUrl}decks/$deckId', data: body);
-      final data = response.data;
-      if (data is Map) {
-        return Map<String, dynamic>.from(data);
-      }
+      return _extractResource(response.data);
     } catch (e) {
       debugPrint('updateDeck failed: $e');
     }
     return null;
+  }
+
+  /// Laravel レスポンスからリソース本体を取り出す。
+  /// `{ data: {...} }` (ApiResource / 単体 show/store/update), 素の Map, list
+  /// いずれでも対応。
+  Map<String, dynamic>? _extractResource(dynamic payload) {
+    if (payload is! Map) return null;
+    final inner = payload['data'];
+    if (inner is Map) {
+      return Map<String, dynamic>.from(inner);
+    }
+    // 念のため: データが直接 root に入っている場合も許容
+    return Map<String, dynamic>.from(payload);
+  }
+
+  /// 一覧系レスポンスから配列を取り出す。
+  /// - Paginator: `{ data: [...], meta: {...} }` or `{ data: [...], current_page: ... }`
+  /// - 旧 API:    `{ list: [...] }`
+  /// - 生配列:    `[...]`
+  Iterable<dynamic> _extractList(dynamic payload) {
+    if (payload is List) return payload;
+    if (payload is Map) {
+      for (final key in ['data', 'list', 'decks']) {
+        final v = payload[key];
+        if (v is List) return v;
+      }
+    }
+    return const [];
   }
 
   /// デッキを削除する。200 系で true、それ以外で false。

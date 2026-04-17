@@ -35,30 +35,95 @@ class DeckSyncService {
   /// ログイン直後に呼ぶ、全件同期処理。
   ///
   /// フロー:
-  ///   1. サーバーのデッキ一覧を取得
-  ///   2. ローカルの既存デッキ (serverId 無し = 未同期) を全件アップロード
-  ///   3. サーバーに無くてローカルに無いデッキが無いよう、サーバー側データで Hive を再構築
+  ///   1. サーバーのデッキ一覧を先に取得
+  ///   2. ローカルの「未同期」デッキ (serverId 無し) を push する際、
+  ///      サーバー側に同一内容 (name + mainDeckCards + magicDeckCards 一致)
+  ///      の deck が既にある場合は **新規 POST せず、serverId を紐付けるだけ** にして重複を防ぐ
+  ///   3. サーバー側データで Hive を再構築
   ///
-  /// 副作用: Hive 内容がサーバー基準に置き換わる。未ログイン時は何もしない。
+  /// ログアウト→再ログインのたびにサーバー側に重複デッキが増えていくバグ対策。
   Future<void> syncOnLogin() async {
     if (!await isLoggedIn) return;
 
-    final localDecks = await _repository.getList();
+    // 1. まずサーバー側の状態を取得
+    final remoteList = await _api.getDecks();
+    final remoteByFingerprint = <String, Map<String, dynamic>>{};
+    for (final r in remoteList) {
+      final fp = _fingerprintRemote(r);
+      // 同じ指紋が複数あれば最初の 1 件を採用 (以後は重複として扱う)
+      remoteByFingerprint.putIfAbsent(fp, () => r);
+    }
 
-    // 1. 未同期ローカルデッキ (serverId 無し) を push
+    // 2. 未同期ローカルデッキを push または紐付け
+    final localDecks = await _repository.getList();
     for (final deck in localDecks.where((d) => d.serverId == null)) {
+      final fp = _fingerprintLocal(deck);
+      final remoteMatch = remoteByFingerprint[fp];
+      if (remoteMatch != null) {
+        // サーバー側に既に同内容のデッキあり → POST せず serverId だけ付与
+        final id = remoteMatch['id']?.toString();
+        if (id != null) {
+          deck.serverId = id;
+          deck.createdAt =
+              _parseDate(remoteMatch['created_at']) ?? deck.createdAt;
+          deck.updatedAt =
+              _parseDate(remoteMatch['updated_at']) ?? deck.updatedAt;
+          if (deck.isInBox) {
+            await deck.save();
+          }
+        }
+        continue;
+      }
+
+      // 新規デッキ → サーバーに POST
       final remote = await _uploadDeck(deck);
       if (remote != null) {
-        // Hive 側の Key が維持された状態で serverId を反映
         deck.serverId = remote['id']?.toString();
         deck.createdAt = _parseDate(remote['created_at']) ?? deck.createdAt;
         deck.updatedAt = _parseDate(remote['updated_at']) ?? deck.updatedAt;
-        await deck.save();
+        if (deck.isInBox) {
+          await deck.save();
+        }
       }
     }
 
-    // 2. サーバー側データで Hive を置き換え
-    await refreshFromRemote();
+    // 3. サーバー側データで Hive を置き換え (既に取得済みの remoteList を再利用)
+    await _applyRemote(remoteList);
+  }
+
+  /// デッキの「同一性」を判定するためのフィンガープリント。
+  /// name + 正規化された main / magic カードリストから生成する。
+  String _fingerprintLocal(DeckModel deck) {
+    return _fingerprint(
+      name: deck.name,
+      main: deck.mainDeckCards,
+      magic: deck.magicDeckCards,
+    );
+  }
+
+  String _fingerprintRemote(Map<String, dynamic> remote) {
+    final deckJson = remote['deck'] is Map
+        ? Map<String, dynamic>.from(remote['deck'] as Map)
+        : remote;
+    final name = (deckJson['name'] as String?) ?? '';
+    final rawCards = deckJson['cards'] ?? deckJson['card_num_list'];
+    final main = rawCards is List ? rawCards.map((e) => e.toString()).toList() : <String>[];
+    final meta = deckJson['meta'] ?? remote['meta'];
+    final rawMagic = meta is Map ? meta['magic_deck'] : null;
+    final magic = rawMagic is List
+        ? rawMagic.map((e) => e.toString()).toList()
+        : <String>[];
+    return _fingerprint(name: name, main: main, magic: magic);
+  }
+
+  String _fingerprint({
+    required String name,
+    required List<String> main,
+    required List<String> magic,
+  }) {
+    final m = [...main]..sort();
+    final g = [...magic]..sort();
+    return [name, m.join(','), g.join(',')].join('|');
   }
 
   /// サーバー側のデッキ一覧で Hive を置き換える。
@@ -66,6 +131,11 @@ class DeckSyncService {
   Future<void> refreshFromRemote() async {
     if (!await isLoggedIn) return;
     final remoteList = await _api.getDecks();
+    await _applyRemote(remoteList);
+  }
+
+  /// `remoteList` を Hive に適用する。syncOnLogin / refreshFromRemote 共通処理。
+  Future<void> _applyRemote(List<Map<String, dynamic>> remoteList) async {
     if (remoteList.isEmpty) {
       // サーバー側にデッキが無い場合、Hive を空にしてしまうと
       // ローカル専用デッキ (serverId==null) を誤削除するリスクがあるため、
@@ -153,14 +223,14 @@ class DeckSyncService {
   }
 
   Map<String, dynamic> _toPayload(DeckModel deck) {
-    // tcg_verse の DeckModelServer 形式に合わせる。
-    // - deck.name: デッキ名
-    // - deck.card_num_list: メインデッキ (List<String>)
+    // tcg_verse backend の DeckController::prepareDeckData / DeckModelServer に合わせる。
+    // - name: デッキ名
+    // - cards: メインデッキ (List<String>)  ※ フィールド名は `cards` (card_num_list ではない)
     // - meta.magic_deck: マジックデッキ (tcg_verse 側と同じ運用)
     return {
       'name': deck.name,
       'description': deck.description,
-      'card_num_list': deck.mainDeckCards,
+      'cards': deck.mainDeckCards,
       'meta': {
         'magic_deck': deck.magicDeckCards,
       },
@@ -174,19 +244,21 @@ class DeckSyncService {
     final local = await _repository.getList();
     final existing = local.where((d) => d.serverId == id).firstOrNull;
 
-    final deckJson = remote['deck'];
-    String name = '';
+    // Laravel Deck モデルは flat な JSON を返す (`{id, name, cards, meta, ...}`)。
+    // 念のため `deck` キーネスト形式にもフォールバック対応。
+    final deckJson = remote['deck'] is Map
+        ? Map<String, dynamic>.from(remote['deck'] as Map)
+        : remote;
+
+    final name = (deckJson['name'] as String?) ?? '';
     List<String> mainCards = [];
-    if (deckJson is Map) {
-      name = (deckJson['name'] as String?) ?? '';
-      final cardNumList = deckJson['card_num_list'];
-      if (cardNumList is List) {
-        mainCards = cardNumList.map((e) => e.toString()).toList();
-      }
+    final rawCards = deckJson['cards'] ?? deckJson['card_num_list'];
+    if (rawCards is List) {
+      mainCards = rawCards.map((e) => e.toString()).toList();
     }
 
     List<String> magicCards = [];
-    final meta = remote['meta'];
+    final meta = deckJson['meta'] ?? remote['meta'];
     if (meta is Map) {
       final magic = meta['magic_deck'];
       if (magic is List) {
