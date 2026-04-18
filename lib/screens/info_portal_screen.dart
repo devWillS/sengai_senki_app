@@ -418,8 +418,11 @@ class _TcgVerseMigrationCard extends StatelessWidget {
     final isLoggedIn = session != null;
     return Container(
       decoration: BoxDecoration(
+        // イベント一覧画面の「TCG Verse で見る」カードと同じティール系グラデに
+        // 揃える。アプリの赤いメインカラーに対するアクセント色として統一し、
+        // 「TCG Verse 関連の案内 = この色」というビジュアル言語にする。
         gradient: const LinearGradient(
-          colors: [Color(0xFF1F6FEB), Color(0xFF2EA043)],
+          colors: [Color(0xFF0891B2), Color(0xFF0E7490)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -504,7 +507,8 @@ class _TcgVerseMigrationCard extends StatelessWidget {
                 label: const Text('Will ID でログインして連携する'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF1F6FEB),
+                  // カード背景のティールに合わせた文字色
+                  foregroundColor: const Color(0xFF0E7490),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   textStyle: const TextStyle(fontWeight: FontWeight.bold),
                 ),
