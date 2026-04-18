@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.2.0+3
+version: 0.3.0+4
 
 environment:
   sdk: ^3.9.0
@@ -78,6 +78,13 @@ dependencies:
   firebase_core: ^4.1.1
   firebase_analytics: ^12.0.2
   firebase_remote_config: ^6.0.2
+
+  # tcg_verse 連携: Will ID SDK で OAuth ログイン + tcg_verse backend でデッキ同期
+  dio: ^5.7.0
+  will_id_sdk:
+    git:
+      url: https://github.com/devWillS/will_id_sdk.git
+      ref: main
 
 dev_dependencies:
   flutter_test:

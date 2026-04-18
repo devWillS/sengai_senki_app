@@ -36,6 +36,22 @@
 	<string>Main</string>
 	<key>UIStatusBarHidden</key>
 	<false/>
+	<!-- Will ID OAuth のカスタムスキーム callback 用。Will ID WebView からの
+	     リダイレクトを受けるため、本番 / 開発の 2 種類を登録する。 -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>jp.devwill.sengiPocket.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>jp.devwill.sengiPocket</string>
+				<string>jp.devwill.sengiPocket.dev</string>
+			</array>
+		</dict>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

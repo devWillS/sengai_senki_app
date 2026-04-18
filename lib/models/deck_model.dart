@@ -15,6 +15,8 @@ class DeckModel extends HiveObject {
     required this.groupCardColor,
     required this.deckType,
     this.updatedAt,
+    this.serverId,
+    this.createdAt,
   });
 
   @HiveField(0)
@@ -40,6 +42,17 @@ class DeckModel extends HiveObject {
 
   @HiveField(7)
   DateTime? updatedAt;
+
+  /// tcg_verse backend に同期済みのデッキに付与されるサーバー採番 ID。
+  /// Will ID ログイン後、サーバー側で作成/更新成功時に格納される。
+  /// 未ログイン時 (ローカルのみ) は null のまま。
+  @HiveField(8)
+  String? serverId;
+
+  /// サーバーから取得したデッキの作成日時。
+  /// (既存データは null になる。一覧の並び替えで updatedAt を代替使用する。)
+  @HiveField(9)
+  DateTime? createdAt;
 
   int get totalMainCards => mainDeckCards.length;
   int get totalMagicCards => magicDeckCards.length;
